@@ -1,0 +1,26 @@
+---
+appId:
+  iOS: 490217893
+  android: com.google.android.googlequicksearchbox
+acceptLanguage: ja
+cron:
+  time: '* */30 * * * *'
+  timeZone: Asia/Tokyo
+checkDate: '2016-05-17T12:00:00+09:00'
+
+slack:
+  use: true
+  webhook: https://xxxxxxxxxxxxxxxxxxx
+  channel: channelname
+
+email:
+  use: false
+  smtp:
+    host:
+    port:
+    ssl: true
+    auth:
+      user: 
+      pass: 
+  from:
+  to:

@@ -1,0 +1,29 @@
+{
+  "name": "reviewet",
+  "version": "0.0.1",
+  "description": "Getting App Store and Google Play's review and notify to either slack or email.",
+  "dependencies": {
+    "cheerio-httpcli": "^0.6.8",
+    "config": "^1.20.3",
+    "cron": "^1.1.0",
+    "js-yaml": "^3.6.1",
+    "nodemailer": "^2.4.1",
+    "slack-node": "^0.2.0",
+    "xml2js": "^0.4.16"
+  },
+  "main": "app.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/seriwb/reviewet.git"
+  },
+  "author": "seri",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/seriwb/reviewet/issues"
+  },
+  "homepage": "https://github.com/seriwb/reviewet#readme"
+}
