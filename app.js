@@ -40,49 +40,28 @@ if (lang === "ja") {
 var iosId = config.appId.iOS;
 var androidId = config.appId.android;
 var ios_base_url = "http://itunes.apple.com/" + lang_sub + "/rss/customerreviews"
-// var ios_url = "http://itunes.apple.com/" + lang_sub + "/rss/customerreviews//id=" + iosId + "/sortBy=mostRecent/xml";
-// var android_url = "https://play.google.com/store/apps/details?id=" + androidId + "&hl=" + lang;
 
 var cronTime = config.cron.time;
 var timeZone = config.cron.timeZone;
 
-var ios_url;
-if (iosId != null) {
-  ios_url = createIosUrl(iosId, 1);
-  var iosApp = new AppData("ios", iosId);
-  iosApp.url = ios_url;
-  
-  var checkDate;
-  // getAppRawData(iosApp, ios_url, analyzeIosData, checkDate);
-  
-  try {
-    var CronJob = require('cron').CronJob;
-    new CronJob(cronTime, function() {
+var checkDate;
+try {
+  var CronJob = require('cron').CronJob;
+  new CronJob(cronTime, function() {
 
-      var configDate = config.checkDate;
-      if (configDate != null && checkDate == null) {
-        checkDate = new Date(configDate);
-      }
-
-      // アプリのデータ取得
-      getAppRawData(iosApp, ios_url, analyzeIosData, checkDate);
-
-      checkDate = new Date();
-
-    }, null, true, timeZone);
-  } catch (ex) {
-    console.log("cron pattern not valid");
+  var configDate = config.checkDate;
+  if (configDate != null && checkDate == null) {
+    checkDate = new Date(configDate);
   }
-}
 
-// TODO
-var android_url;
-if (androidId != null) {
-  android_url = createAndroidUrl(androidId);
-  var androidApp = new AppData("android", androidId);
-  androidApp = android_url;
+  main(checkDate);
+  
+  checkDate = new Date();
+  
+  }, null, true, timeZone);
+} catch (ex) {
+  console.log("cron pattern not valid");
 }
-
 
 
 function createIosUrl(appId, page) {
@@ -102,13 +81,64 @@ function createAndroidUrl(appId) {
   return url;
 }
 
-// TODO
-function analyzeAndroidData() {}
+
+function analyzeAndroidData($, appData, checkDate) {
+  
+  // Androidは$をそのまま使って処理してみる
+
+  // アプリ情報を設定
+  appData.name = $('.id-app-title').text();
+
+  // レビュー情報を設定
+  var reviewDatas = [];
+
+  $('.single-review').each(function(i, element) {
+    
+    var param = [];
+    
+    var reviewInfo = $(element).find('.review-info');
+    param.updated = $(reviewInfo).find('.review-date').text();
+    
+    // チェック日よりも過去のレビューは表示しない
+    if (checkDate != null && param.updated != null) {
+      
+      var options = {
+        year    : "numeric", //年の形式
+        month   : "short",   //月の形式
+        day     : "numeric", //日の形式
+      };
+      var localCheckDate = checkDate.toLocaleDateString(config.acceptLanguage, options);
+      
+      if (param.updated < localCheckDate) {
+          return true;
+      }
+    }
+
+    var tempRating = $(reviewInfo).find('.review-info-star-rating .tiny-star').attr('aria-label');
+    var trimRating = '5つ星のうち'.length;
+    param.rating = tempRating.substring(trimRating, trimRating+1);
+
+    // アプリバージョンは取れないのでハイフンにする
+    param.version = "-";
+    
+    var reviewBody = $(element).find('.review-body.with-review-wrapper');
+    param.title = $(reviewBody).find('.review-title').text();
+
+    // 前後からタイトルと「全文を表示」を削除し、前後の空白を削除
+    var tempMessage = $(reviewBody).text().replace(param.title, "");
+    param.message = tempMessage.substring(0, tempMessage.lastIndexOf("全文を表示")).trim();
+    
+    var reviewData = new ReviewData(param);
+    reviewDatas.push(reviewData);
+
+  });
+
+  return reviewDatas;
+}
 
 function analyzeIosData($, appData, checkDate) {
 
   // RSSの内容を解析してレビューデータを作成
-  // TODO:レビューモデル作成
   var parseString = require('xml2js').parseString;
   var reviewDataXml = $.xml();
   //console.log(reviewDataXml);
@@ -131,7 +161,8 @@ function analyzeIosData($, appData, checkDate) {
       
       var param = [];
       
-      param.updated = new Date(entry.updated[0]);
+      // Android側の制御にあわせて日付を文字列で保持する
+      param.updated = formatDate(new Date(entry.updated[0]), "YYYY/MM/DD hh:mm:ss");
       param.reviewId = entry.id[0];
       param.title = entry.title[0];
       param.message = entry.content[0]._;
@@ -156,6 +187,7 @@ function analyzeIosData($, appData, checkDate) {
   return reviewDatas;
 }
 
+
 function getAppRawData(appData, url, appfunc, checkDate) {
   // アプリのレビューデータを取得
   var client = require('cheerio-httpcli');
@@ -176,7 +208,12 @@ function getAppRawData(appData, url, appfunc, checkDate) {
   });
 }
 
+
 function slackNotification(appData, reviewDatas) {
+  
+  if (reviewDatas == null || reviewDatas.length == 0) {
+    return;
+  }
   
   var Slack = require('slack-node');
 
@@ -185,13 +222,6 @@ function slackNotification(appData, reviewDatas) {
   slack = new Slack();
   slack.setWebhook(webhookUri);
 
-  // 基本的に最新から先頭になっているため、ソート不要
-  // reviewDatas.sort(function(a,b) {
-  //   if (a.updated > b.updated) return -1;
-  //   if (a.updated < b.updated) return 1;
-  //   return 0;
-  // });
-  
   for (var i=0; i < reviewDatas.length; i++) {
     
     slack.webhook({
@@ -215,7 +245,7 @@ function slackNotification(appData, reviewDatas) {
             },
             {
                "title":"Updated",
-               "value":formatDate(reviewDatas[i].updated, "YYYY/MM/DD hh:mm:ss"),
+               "value":reviewDatas[i].updated,
                "short":true
             },
             {
@@ -237,7 +267,29 @@ function slackNotification(appData, reviewDatas) {
   }
 }
 
-function main() {}
+// TODO
+function EmailNotification() {}
+
+function main(checkDate) {
+  var ios_url;
+  if (iosId != null) {
+    ios_url = createIosUrl(iosId, 1);
+    var iosApp = new AppData("iOS", iosId);
+    
+    // iOSアプリのデータ取得
+    getAppRawData(iosApp, ios_url, analyzeIosData, checkDate);
+  }
+  
+  var android_url;
+  if (androidId != null) {
+    android_url = createAndroidUrl(androidId);
+    var androidApp = new AppData("Android", androidId);
+    androidApp.url = android_url;
+    
+    // Androidアプリのデータ取得
+    getAppRawData(androidApp, android_url, analyzeAndroidData, checkDate);
+  }
+}
 
 
 /**
