@@ -85,7 +85,10 @@ function createAndroidUrl(appId) {
 function analyzeAndroidData($, appData, checkDate) {
   
   // Androidは$をそのまま使って処理してみる
-
+  
+  // レビュー本文の後ろにくる「全文を表示」を削除
+  $('div.review-link').remove();
+  
   // アプリ情報を設定
   appData.name = $('.id-app-title').text();
 
@@ -114,9 +117,10 @@ function analyzeAndroidData($, appData, checkDate) {
       }
     }
 
+    // TODO:日本語以外にも対応する
     var tempRating = $(reviewInfo).find('.review-info-star-rating .tiny-star').attr('aria-label');
-    var trimRating = '5つ星のうち'.length;
-    param.rating = tempRating.substring(trimRating, trimRating+1);
+    var trimRatingLength = '5つ星のうち'.length;
+    param.rating = tempRating.substring(trimRatingLength, trimRatingLength + 1);
 
     // アプリバージョンは取れないのでハイフンにする
     param.version = "-";
@@ -124,10 +128,10 @@ function analyzeAndroidData($, appData, checkDate) {
     var reviewBody = $(element).find('.review-body.with-review-wrapper');
     param.title = $(reviewBody).find('.review-title').text();
 
-    // 前後からタイトルと「全文を表示」を削除し、前後の空白を削除
+    // レビュー本文の前からタイトルを削除し、前後の空白を削除
     var tempMessage = $(reviewBody).text().replace(param.title, "");
-    param.message = tempMessage.substring(0, tempMessage.lastIndexOf("全文を表示")).trim();
-    
+    param.message = tempMessage.trim();
+
     var reviewData = new ReviewData(param);
     reviewDatas.push(reviewData);
 
@@ -262,7 +266,10 @@ function slackNotification(appData, reviewDatas) {
       }
       ]
     }, function(err, response) {
-      console.log(response);
+      if (err) {
+        console.log("Error:", err, "\n", response);
+      }
+      // console.log(response);
     });
   }
 }
