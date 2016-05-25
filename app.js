@@ -149,6 +149,11 @@ function analyzeIosData($, appData, checkDate) {
   var reviewDatas = [];
   parseString(reviewDataXml, function(err, result) {
     
+    // アプリレビューがない場合は終了
+    if (result.feed.entry == null) {
+      return reviewDatas;
+    }
+    
     // アプリ情報を設定
     appData.name = result.feed.entry[0].title;   // TODO:あとでim:nameに変更
     appData.url = result.feed.entry[0].id[0]._;       // TODO:linkから取る
