@@ -2,13 +2,13 @@
 
 ReviewetはiOSとAndroidのストアレビューを、SlackやEmailで通知するためのプログラムです。
 
-## How to use
+# How to use
 
-### Requirement
+## Requirement
 
 - node.js v5+
 
-### Running Command
+## Running Command
 
 ```
 $ git clone git@github.com:seriwb/reviewet.git
@@ -18,7 +18,7 @@ $ npm install
 $ node app.js
 ```
 
-### Setting Configurations
+## Setting Configurations
 
 Reviewetの動作設定は```config/default.yml```を編集することで変更が可能です。
 
@@ -26,13 +26,13 @@ Reviewetの動作設定は```config/default.yml```を編集することで変更
 
 - レビューを取得するiOSアプリ
 - レビューを取得するAndroidアプリ
-- TODO:アプリレビューを取得する対象の言語
+- アプリレビューを取得する対象の言語
 - cron指定による定期実行のタイミング制御（デフォルト30分置きに実行）
 - 初回の通知対象とするレビューをいつからのものにするか
 - Slack通知の利用設定
 - Email通知の利用設定
 
-#### Points of the changes
+### Points of the changes
 
 ```yaml
 appId:
@@ -45,26 +45,26 @@ cron:
 checkDate: '2016-05-17T12:00:00+09:00'
 ```
 
-##### 1. appId  
+#### 1. appId  
 
 レビューを取得するアプリのIDを、iOSの場合はappIdの「iOS」に、Androidの場合は「android」に設定してください。（デフォルト値はサンプルです）
 
 レビュー情報取得を利用しない場合は、対象のOSのappIdの値を空にしてください。  
 （例えばGoogle Playからの情報を取得しない場合は```andorid: ```としてください）
 
-##### 2. acceptLanguage
+#### 2. acceptLanguage
 
 レビューを取得するストアの言語を国別コードで指定してください。
 
 **※現在、acceptLanguageに日本（ja）以外を指定した場合、AndroidアプリレビューのRatingが取得できません。**
 
-##### 3. cron
+#### 3. cron
 
 本プログラムは30分毎に定期拮抗されますが、実行タイミングをcron指定で変更することが可能です。
 変更する場合は、cronの「time」にcronの記述方法で設定してください。  
 「timeZone」には、本プログラムを実行する環境のタイムゾーンを指定してください。
 
-##### 4. checkDate
+#### 4. checkDate
 
 「checkDate」は、プログラムが初回に通知対象とするレビューを、いつに投稿されたものからかを指定するため項目です。
 設定しなかった場合は、取得可能なレビュー全てが通知対象となります。
@@ -72,7 +72,7 @@ checkDate: '2016-05-17T12:00:00+09:00'
 **※現在、App StoreのレビューはRSSの1ページ分までしか取得できません。**
 
 
-#### to use Slack notification
+### to use Slack notification
 
 ```yaml
 slack:
@@ -87,9 +87,31 @@ slackの「use」をtrueにすると、Slack通知機能が有効になります
 結果を出力するチャンネル名を#を除いて「channel」に設定してください。
 
 
-#### to use Email sending
+### to use Email sending
 
-TODO
+```yaml
+email:
+  use: true
+  smtp:
+    host: smtp.gmail.com
+    port: 465
+    ssl: true
+    auth:
+      user: 'username@gmail.com'
+      pass: 'userpassword'
+  from: 'sendFrom@mail.com'
+  to: 'sendTo@mail.com'
+```
+
+emailの「use」をtrueにすると、メール通知機能が有効になります。（無効にする場合はfalse。デフォルトはfalse）
+
+有効にした場合は、「smtp」の各項目にメールを送信するSMTPサーバの情報を入力してください。
+
+※Gmailで送信する場合は、対象アカウントの「安全性の低いアプリの許可」を有効にする必要があります。詳細は以下を参照してください。
+
+> To use Gmail you may need to configure ["Allow Less Secure Apps"](https://www.google.com/settings/security/lesssecureapps) in your Gmail account unless you are using 2FA in which case you would have to create an [Application Specific](https://security.google.com/settings/security/apppasswords) password. You also may need to unlock your account with ["Allow access to your Google account"](https://accounts.google.com/DisplayUnlockCaptcha) to use SMTP.
+
+- https://github.com/nodemailer/nodemailer#tldr-usage-example
 
 
 ## MIT License

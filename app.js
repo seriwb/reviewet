@@ -49,14 +49,14 @@ try {
   var CronJob = require('cron').CronJob;
   new CronJob(cronTime, function() {
 
-  var configDate = config.checkDate;
-  if (configDate != null && checkDate == null) {
-    checkDate = new Date(configDate);
-  }
+    var configDate = config.checkDate;
+    if (configDate != null && checkDate == null) {
+      checkDate = new Date(configDate);
+    }
 
-  main(checkDate);
-  
-  checkDate = new Date();
+    main(checkDate);
+    
+    checkDate = new Date();
   
   }, null, true, timeZone);
 } catch (ex) {
@@ -213,7 +213,9 @@ function getAppRawData(appData, url, appfunc, checkDate) {
       slackNotification(appData, reviewDatas);
     }
     
-    // TODO:EmailNotification
+    if (config.email.use) {
+      emailNotification(appData, reviewDatas);
+    }
   });
 }
 
@@ -279,8 +281,72 @@ function slackNotification(appData, reviewDatas) {
   }
 }
 
-// TODO
-function EmailNotification() {}
+
+function emailNotification(appData, reviewDatas) {
+  
+  if (reviewDatas == null || reviewDatas.length == 0) {
+    return;
+  }
+  
+  var fs = require('fs');
+  var emailTemplate = fs.readFileSync('./email_template.html', 'utf8');
+  
+  var mailBody = '';
+  for (var i=0; i < reviewDatas.length; i++) {
+    // Placeholderを置換する
+    var reviewRow = emailTemplate
+                      .replace('{{ appData.name }}', appData.name)
+                      .replace(/{{ appData.url }}/g, appData.url)
+                      .replace('{{ review.title }}', reviewDatas[i].title)
+                      .replace('{{ review.message }}', reviewDatas[i].message)
+                      .replace('{{ review.rating }}', Array(Number(reviewDatas[i].rating)+1).join('☆'))
+                      .replace('{{ review.updated }}', reviewDatas[i].updated)
+                      .replace('{{ review.kind }}', appData.kind)
+                      .replace('{{ review.version }}', reviewDatas[i].version);
+    mailBody += reviewRow;
+  }
+  
+  var nodemailer = require("nodemailer");
+  
+  // SMTPコネクションプールを作成
+  var smtpConfig;
+  if (config.email.smtp.auth.user != null) {
+    smtpConfig = {
+      host: config.email.smtp.host,
+      port: config.email.smtp.port,
+      secure: config.email.smtp.ssl,
+      auth: {
+        user: config.email.smtp.auth.user,
+        pass: config.email.smtp.auth.pass
+      }
+    };
+  } else {
+    smtpConfig = {
+      host: config.email.smtp.host,
+      port: config.email.smtp.port,
+      secure: config.email.smtp.ssl
+    };
+  }
+  var transporter = nodemailer.createTransport(smtpConfig);
+  
+  // unicode文字でメールを送信
+  var mailOptions = {
+      from: "Reviewet <" + config.email.from + ">",
+      to: config.email.to,
+      subject: "[Reviewet]" + appData.name + "の新着レビュー",
+      html: mailBody
+  };
+  // 先ほど宣言したトランスポートオブジェクトでメールを送信
+  transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+          console.log(error);
+      } else {
+          // console.log("Message sent: " + info.response);
+      }
+  });
+
+}
+
 
 function main(checkDate) {
   var ios_url;
