@@ -7,6 +7,8 @@ ReviewetはiOSとAndroidのストアレビューを、SlackやEmailで通知す�
 ## Requirement
 
 - node.js v5+
+- MacOS X
+
 
 ## Running Command
 
@@ -17,6 +19,9 @@ $ vi config/default.yml    # 変更方法はSetting Cofigurationsを参照
 $ npm install
 $ node app.js
 ```
+
+※一度実行後、データを初期状態に戻したい場合は、reviewetディレクトリ配下に作成される```reviewet.sqlite```を削除してから```node app.js```コマンドを実行してください。
+
 
 ## Setting Configurations
 

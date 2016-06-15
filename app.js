@@ -20,12 +20,14 @@ ReviewData = function(param) {
   this.message = param.message;
   this.version = param.version;
   this.rating = param.rating;
-  this.username = param.username;
+  this.username = param.username;   // 未使用
 };
 
-
+// モジュールの取り込み
+var sqlite3 = require('sqlite3').verbose();
 var config = require('config');
 
+// --- 初期設定 ---
 // 国別コードの指定はjaをメインに、jpをサブにする。
 var lang = config.acceptLanguage;
 var lang_sub = lang;
@@ -43,6 +45,26 @@ var ios_base_url = "http://itunes.apple.com/" + lang_sub + "/rss/customerreviews
 
 var cronTime = config.cron.time;
 var timeZone = config.cron.timeZone;
+
+var DB_PATH = __dirname + "/reviewet.sqlite";
+// --- ここまで ---
+
+// DB作成
+var db = new sqlite3.Database(DB_PATH);
+db.serialize(function(){
+  db.run(
+    "CREATE TABLE IF NOT EXISTS android_review(" +
+    "id INTEGER PRIMARY KEY, " +　// レビューID（重複していたら登録しない）
+    "app_name TEXT, " +           // アプリ名
+    "title TEXT, " +              // レビュータイトル
+    "message TEXT, " +            // レビュー内容
+    "rating INTEGER, " +          // 評価
+    "updated TEXT, " +            // レビュー投稿日（日付の文字列）
+    "version TEXT, " +            // レビューしたアプリのバージョン
+    "create_date DATE)"           // 登録日
+  );
+});
+
 
 var checkDate;
 try {
@@ -132,13 +154,56 @@ function analyzeAndroidData($, appData, checkDate) {
     var tempMessage = $(reviewBody).text().replace(param.title, "");
     param.message = tempMessage.trim();
 
+    // レビュー情報をDBに保存
     var reviewData = new ReviewData(param);
+    insertAndroidReviewData(appData, reviewData);
+    
+    // TODO:重複していたら通知対象にしない and 初回通知しないオプションを付ける
     reviewDatas.push(reviewData);
 
   });
 
   return reviewDatas;
 }
+
+/**
+ * 環境によってtoLocaleDateStringが意図通りに動作しないための暫定日付判定処理
+ * 対象言語：日本語
+ */
+function compareLocaleDate(countryCode, targetDate, compareDate) {
+  if (countryCode === 'ja') {
+    var pwdate = new Date(compareDate);
+    var pubDate = pwdate.getYear() + "年" + (pwdate.getMonth() + 1) + "月" + pwdate.getDate() + "日 " + ' ' + entryDate.toLocaleTimeString();
+    
+    // 年、月、日が出るまでStringをカットしていき、それぞれの数値を取得後、比較する
+
+  }
+  else {
+    
+  }
+
+}
+
+/**
+ * AndroidのレビューデータをDBに保存して、同日のデータを比較対象にする。
+ * 再起動した際に、checkDateとそれ以降の日のデータはDBから削除する
+ */
+function insertAndroidReviewData(appData, reviewData) {
+  
+  db.serialize(function(){
+
+    // 挿入用プリペアドステートメントを準備
+    var ins_androidReview = db.prepare(
+      "INSERT INTO android_review(id, app_name, title, message, rating, updated, version, create_date) " +
+      "VALUES(?, ?, ?, ?, ?, ?, ?, ?)");
+
+    ins_androidReview.run(
+      reviewData.reviewId, appData.name, reviewData.title, reviewData.message,
+      reviewData.rating, reviewData.updated, reviewData.version, new Date());
+    ins_androidReview.finalize();
+  });
+}
+
 
 function analyzeIosData($, appData, checkDate) {
 
@@ -163,6 +228,7 @@ function analyzeIosData($, appData, checkDate) {
 
       var entry = result.feed.entry[i];
       
+      // チェック日よりも過去のレビューは表示しない
       if (checkDate != null && entry.updated != null
           && new Date(entry.updated) < checkDate) {
             continue;
