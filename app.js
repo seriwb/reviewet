@@ -47,6 +47,9 @@ var cronTime = config.cron.time;
 var timeZone = config.cron.timeZone;
 
 var DB_PATH = __dirname + "/reviewet.sqlite";
+
+// 初回オプション（起動後に設定されたレビュー結果を通知するためのオプション）
+var firstTime = config.firstTime;
 // --- ここまで ---
 
 // DB作成
@@ -54,15 +57,17 @@ var db = new sqlite3.Database(DB_PATH);
 db.serialize(function(){
   db.run(
     "CREATE TABLE IF NOT EXISTS android_review(" +
-    "id INTEGER PRIMARY KEY, " +　// レビューID（重複していたら登録しない）
-    "app_name TEXT, " +           // アプリ名
-    "title TEXT, " +              // レビュータイトル
-    "message TEXT, " +            // レビュー内容
-    "rating INTEGER, " +          // 評価
-    "updated TEXT, " +            // レビュー投稿日（日付の文字列）
-    "version TEXT, " +            // レビューしたアプリのバージョン
-    "create_date DATE)"           // 登録日
+    "id TEXT PRIMARY KEY, " + // レビューID（重複していたら登録しない）
+    "app_name TEXT, " +       // アプリ名
+    "title TEXT, " +          // レビュータイトル
+    "message TEXT, " +        // レビュー内容
+    "rating INTEGER, " +      // 評価
+    "updated TEXT, " +        // レビュー投稿日（日付の文字列）
+    "version TEXT, " +        // レビューしたアプリのバージョン
+    "create_date DATE)"       // 登録日
   );
+  
+  // TODO:再起動した際に、checkDateとそれ以降の日のデータはDBから削除する
 });
 
 
@@ -78,8 +83,12 @@ try {
 
     main(checkDate);
     
+    // チェック日時を最新化
     checkDate = new Date();
-  
+    
+    // 初回フラグをオフにする
+    firstTime = false;
+    
   }, null, true, timeZone);
 } catch (ex) {
   console.log("cron pattern not valid");
@@ -122,6 +131,7 @@ function analyzeAndroidData($, appData, checkDate) {
     var param = [];
     
     var reviewInfo = $(element).find('.review-info');
+    //TODO:param.reviewId = <data>;
     param.updated = $(reviewInfo).find('.review-date').text();
     
     // チェック日よりも過去のレビューは表示しない
@@ -156,10 +166,12 @@ function analyzeAndroidData($, appData, checkDate) {
 
     // レビュー情報をDBに保存
     var reviewData = new ReviewData(param);
-    insertAndroidReviewData(appData, reviewData);
+    var insertOk = insertAndroidReviewData(appData, reviewData);
     
-    // TODO:重複していたら通知対象にしない and 初回通知しないオプションを付ける
-    reviewDatas.push(reviewData);
+    // レビュー情報が重複している、または初回通知しないオプションが付いてれいば通知対象にしない
+    if (insertOk && !firstTime) {
+      reviewDatas.push(reviewData);
+    }
 
   });
 
@@ -167,41 +179,54 @@ function analyzeAndroidData($, appData, checkDate) {
 }
 
 /**
- * 環境によってtoLocaleDateStringが意図通りに動作しないための暫定日付判定処理
- * 対象言語：日本語
- */
-function compareLocaleDate(countryCode, targetDate, compareDate) {
-  if (countryCode === 'ja') {
-    var pwdate = new Date(compareDate);
-    var pubDate = pwdate.getYear() + "年" + (pwdate.getMonth() + 1) + "月" + pwdate.getDate() + "日 " + ' ' + entryDate.toLocaleTimeString();
-    
-    // 年、月、日が出るまでStringをカットしていき、それぞれの数値を取得後、比較する
-
-  }
-  else {
-    
-  }
-
-}
-
-/**
- * AndroidのレビューデータをDBに保存して、同日のデータを比較対象にする。
- * 再起動した際に、checkDateとそれ以降の日のデータはDBから削除する
+ * AndroidのレビューデータをDBに保存する。
+ * テーブルにレビューIDがすでに存在する場合は登録処理をしないでfalseを返す。
+ * Insertできた場合はtrueを返す。
  */
 function insertAndroidReviewData(appData, reviewData) {
   
-  db.serialize(function(){
+  var selectRecord = function (condition) {
+    return new Promise(function (resolve, reject) {
+      db.serialize(function () {
+        db.get('SELECT count(*) as cnt FROM android_review WHERE id = $id',
+          { $id: condition.reviewId  },
+          function (err, res) {
+            if (err) {
+              return reject(err);
+            }
+            resolve(res);
+          });
+      });
+    });
+  }; 
 
-    // 挿入用プリペアドステートメントを準備
-    var ins_androidReview = db.prepare(
-      "INSERT INTO android_review(id, app_name, title, message, rating, updated, version, create_date) " +
-      "VALUES(?, ?, ?, ?, ?, ?, ?, ?)");
-
-    ins_androidReview.run(
-      reviewData.reviewId, appData.name, reviewData.title, reviewData.message,
-      reviewData.rating, reviewData.updated, reviewData.version, new Date());
-    ins_androidReview.finalize();
+  // レコードの有無をチェックする
+  var nodata = false;
+  selectRecord(reviewData).then(function (result) {
+    console.log('Success:', result.cnt);
+    if (result.cnt > 0) {
+      nodata = true;
+    }
+  }).catch(function (err) {
+    console.log('Failure:', err);
   });
+
+  if (nodata) {
+    db.serialize(function(){
+      // 挿入用プリペアドステートメントを準備
+      var ins_androidReview = db.prepare(
+        "INSERT INTO android_review(id, app_name, title, message, rating, updated, version, create_date) " +
+        "VALUES(?, ?, ?, ?, ?, ?, ?, ?)");
+
+      ins_androidReview.run(
+        reviewData.reviewId, appData.name, reviewData.title, reviewData.message,
+        reviewData.rating, reviewData.updated, reviewData.version, new Date());
+      ins_androidReview.finalize();
+    });
+    return true;
+  } else {
+    return false;
+  }
 }
 
 
