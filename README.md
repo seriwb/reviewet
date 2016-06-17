@@ -6,8 +6,7 @@ ReviewetはiOSとAndroidのストアレビューを、SlackやEmailで通知す�
 
 ## Requirement
 
-- node.js v5+
-- MacOS X
+- node.js v6+
 
 
 ## Running Command
@@ -33,7 +32,8 @@ Reviewetの動作設定は```config/default.yml```を編集することで変更
 - レビューを取得するAndroidアプリ
 - アプリレビューを取得する対象の言語
 - cron指定による定期実行のタイミング制御（デフォルト30分置きに実行）
-- 初回の通知対象とするレビューをいつからのものにするか
+- 初回の通知対象とするレビューをいつからのものにするか（iOSのみ）
+- 初回の通知対象に取得できたレビューをすべて含めるか（Androidのみ）
 - Slack通知の利用設定
 - Email通知の利用設定
 
@@ -47,7 +47,8 @@ acceptLanguage: ja
 cron:
   time: '* */30 * * * *'
   timeZone: Asia/Tokyo
-checkDate: '2016-05-17T12:00:00+09:00'
+checkDate: '2016-06-01T12:00:00+09:00'
+firstTimeIgnore: false
 ```
 
 #### 1. appId  
@@ -75,6 +76,11 @@ checkDate: '2016-05-17T12:00:00+09:00'
 設定しなかった場合は、取得可能なレビュー全てが通知対象となります。
 
 **※現在、App StoreのレビューはRSSの1ページ分までしか取得できません。**
+
+#### 5. firstTimeIgnore
+
+初回起動時に、存在するAndroidのレビュー結果を無視するかどうかのオプションです。  
+起動後の新着レビューだけの通知でよい場合は、trueにしてください。
 
 
 ### to use Slack notification
