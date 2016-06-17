@@ -20,12 +20,13 @@ ReviewData = function(param) {
   this.message = param.message;
   this.version = param.version;
   this.rating = param.rating;
-  this.username = param.username;
 };
 
-
+// モジュールの取り込み
+var sqlite3 = require('sqlite3').verbose();
 var config = require('config');
 
+// --- 初期設定 ---
 // 国別コードの指定はjaをメインに、jpをサブにする。
 var lang = config.acceptLanguage;
 var lang_sub = lang;
@@ -44,6 +45,31 @@ var ios_base_url = "http://itunes.apple.com/" + lang_sub + "/rss/customerreviews
 var cronTime = config.cron.time;
 var timeZone = config.cron.timeZone;
 
+var DB_PATH = __dirname + "/reviewet.sqlite";
+
+// 初回通知しないオプション（起動後に設定されたレビュー結果を通知しないためのオプション）
+var firstTimeIgnore = config.firstTimeIgnore;
+// --- ここまで ---
+
+// DB作成
+var db = new sqlite3.Database(DB_PATH);
+db.serialize(function(){
+  db.run(
+    "CREATE TABLE IF NOT EXISTS android_review(" +
+    "id TEXT PRIMARY KEY, " + // レビューID（重複していたら登録しない）
+    "app_name TEXT, " +       // アプリ名
+    "title TEXT, " +          // レビュータイトル
+    "message TEXT, " +        // レビュー内容
+    "rating INTEGER, " +      // 評価
+    "updated TEXT, " +        // レビュー投稿日（日付の文字列）
+    "version TEXT, " +        // レビューしたアプリのバージョン
+    "create_date DATE)"       // 登録日
+  );
+  
+  // TODO:再起動した際に、checkDateとそれ以降の日のデータはDBから削除する
+});
+
+
 var checkDate;
 try {
   var CronJob = require('cron').CronJob;
@@ -56,8 +82,12 @@ try {
 
     main(checkDate);
     
+    // チェック日時を最新化
     checkDate = new Date();
-  
+    
+    // 通知しない設定をオフにする
+    firstTimeIgnore = false;
+    
   }, null, true, timeZone);
 } catch (ex) {
   console.log("cron pattern not valid");
@@ -81,41 +111,49 @@ function createAndroidUrl(appId) {
   return url;
 }
 
-
+/**
+ * Androindのレビュー情報を解析して、整形したレビューデータを返却する。
+ * ※Androidは$をそのまま使って処理してみる
+ */
 function analyzeAndroidData($, appData, checkDate) {
   
-  // Androidは$をそのまま使って処理してみる
+  return new Promise(function(resolve, reject) {
   
-  // レビュー本文の後ろにくる「全文を表示」を削除
-  $('div.review-link').remove();
-  
-  // アプリ情報を設定
-  appData.name = $('.id-app-title').text();
-
-  // レビュー情報を設定
-  var reviewDatas = [];
-
-  $('.single-review').each(function(i, element) {
+    // レビュー本文の後ろにくる「全文を表示」を削除
+    $('div.review-link').remove();
     
+    // アプリ情報を設定
+    appData.name = $('.id-app-title').text();
+
+    // レビュー情報を設定
+    var reviewProcess = [];
+    $('.single-review').each(function (i, element) {
+      reviewProcess.push(reviewGetLoop($, appData, element));
+    });
+    Promise.all(reviewProcess).then(function(datas) {
+      var returnDatas = [];
+      for (var i=0; i < datas.length; i++) {
+        if (datas[i] != null) {
+          returnDatas.push(datas[i]);
+        }
+      }
+      resolve(returnDatas);
+    });
+  });
+};
+
+/**
+ * レビュー情報の解析処理。
+ * 取得したレビュー情報が新規であればDBに保存し、通知用データとして返却する。
+ */
+function reviewGetLoop($, appData, element) {
+
+  return new Promise(function (resolve, reject) {
     var param = [];
     
     var reviewInfo = $(element).find('.review-info');
+    param.reviewId = $(element).find('.review-header').attr('data-reviewid');
     param.updated = $(reviewInfo).find('.review-date').text();
-    
-    // チェック日よりも過去のレビューは表示しない
-    if (checkDate != null && param.updated != null) {
-      
-      var options = {
-        year    : "numeric", //年の形式
-        month   : "short",   //月の形式
-        day     : "numeric", //日の形式
-      };
-      var localCheckDate = checkDate.toLocaleDateString(config.acceptLanguage, options);
-      
-      if (param.updated < localCheckDate) {
-          return true;
-      }
-    }
 
     // TODO:日本語以外にも対応する
     var tempRating = $(reviewInfo).find('.review-info-star-rating .tiny-star').attr('aria-label');
@@ -133,67 +171,147 @@ function analyzeAndroidData($, appData, checkDate) {
     param.message = tempMessage.trim();
 
     var reviewData = new ReviewData(param);
-    reviewDatas.push(reviewData);
-
+    
+    var pushData = function (result, reviewData) {
+      return new Promise(function (resolve, reject) {
+        // レビュー情報が重複している、または初回通知しないオプションが付いていれば通知対象にしない
+        if (result && !firstTimeIgnore) {
+          resolve(reviewData);
+        } else {
+          resolve(null);
+        }
+      });
+    }
+    // DBに登録を試みて、登録できれば新規レビューなので通知用レビューデータとして返却する
+    insertAndroidReviewData(appData, reviewData).then(function(result) {
+      pushData(result, reviewData).then(function (data) {
+        resolve(data)
+      });
+    });
   });
-
-  return reviewDatas;
 }
 
+/**
+ * Androidのレビュー情報がすでにDBに存在しているかを調べる。
+ * レビューIDでのカウント数を返す。（0 or 1）
+ */
+function selectRecord(condition) {
+  return new Promise(function (resolve, reject) {
+    db.serialize(function () {
+      db.get('SELECT count(*) as cnt FROM android_review WHERE id = $id',
+        { $id: condition.reviewId  },
+        function (err, res) {
+          if (err) {
+            return reject(err);
+          }
+          resolve(res);
+        });
+    });
+  });
+}
+
+/**
+ * AndroidのレビューデータをDBに保存する。
+ * テーブルにレビューIDがすでに存在する場合は登録処理をしないでfalseを返す。
+ * Insertできた場合はtrueを返す。
+ */
+function insertAndroidReviewData(appData, reviewData) {
+  
+  return new Promise(function (resolve, reject) {
+
+    // レコードの有無をチェックする
+    var nodata = false;
+    selectRecord(reviewData).then(function (result) {
+      // console.log('Success:', result.cnt);
+      if (result.cnt === 0) {
+        nodata = true;
+      }
+      if (nodata) {
+        db.serialize(function(){
+          // 挿入用プリペアドステートメントを準備
+          var ins_androidReview = db.prepare(
+            "INSERT INTO android_review(id, app_name, title, message, rating, updated, version, create_date) " +
+            "VALUES(?, ?, ?, ?, ?, ?, ?, ?)");
+
+          ins_androidReview.run(
+            reviewData.reviewId, appData.name, reviewData.title, reviewData.message,
+            reviewData.rating, reviewData.updated, reviewData.version, new Date());
+          ins_androidReview.finalize();
+        });
+        resolve(true);
+      } else {
+        resolve(false);
+      }
+    }).catch(function (err) {
+      console.log('Failure:', err);
+      reject(false);
+    });
+  
+  });
+}
+
+
+/**
+ * iOSのレビュー情報を解析して、整形したレビューデータを返却する。
+ */
 function analyzeIosData($, appData, checkDate) {
 
-  // RSSの内容を解析してレビューデータを作成
-  var parseString = require('xml2js').parseString;
-  var reviewDataXml = $.xml();
-  //console.log(reviewDataXml);
-  var reviewDatas = [];
-  parseString(reviewDataXml, function(err, result) {
-    
-    // アプリレビューがない場合は終了
-    if (result.feed.entry == null) {
-      return reviewDatas;
-    }
-    
-    // アプリ情報を設定
-    appData.name = result.feed.entry[0].title;   // TODO:あとでim:nameに変更
-    appData.url = result.feed.entry[0].id[0]._;       // TODO:linkから取る
-    
-    // レビュー情報を設定
-    for (var i=1; i < result.feed.entry.length; i++) {
+  return new Promise(function(resolve, reject) {
+  
+    // RSSの内容を解析してレビューデータを作成
+    var parseString = require('xml2js').parseString;
+    var reviewDataXml = $.xml();
+    //console.log(reviewDataXml);
+    var reviewDatas = [];
+    parseString(reviewDataXml, function(err, result) {
+      
+      // アプリレビューがない場合は終了
+      if (result.feed.entry == null) {
+        return reviewDatas;
+      }
+      
+      // アプリ情報を設定
+      appData.name = result.feed.entry[0].title;   // TODO:あとでim:nameに変更
+      appData.url = result.feed.entry[0].id[0]._;       // TODO:linkから取る
+      
+      // レビュー情報を設定
+      for (var i=1; i < result.feed.entry.length; i++) {
 
-      var entry = result.feed.entry[i];
-      
-      if (checkDate != null && entry.updated != null
-          && new Date(entry.updated) < checkDate) {
-            continue;
-      }
-      
-      var param = [];
-      
-      // Android側の制御にあわせて日付を文字列で保持する
-      param.updated = formatDate(new Date(entry.updated[0]), "YYYY/MM/DD hh:mm:ss");
-      param.reviewId = entry.id[0];
-      param.title = entry.title[0];
-      param.message = entry.content[0]._;
-      
-      var value;
-      for (var key in entry) {
-        if (key == 'im:contenttype') value = entry[key];
-      }
-      for (var key in value[0]) {
-        if (key == 'im:rating') {
-          param.rating = value[0][key][0];
+        var entry = result.feed.entry[i];
+        
+        // チェック日よりも過去のレビューは表示しない
+        if (checkDate != null && entry.updated != null
+            && new Date(entry.updated) < checkDate) {
+              continue;
         }
-        else if (key == 'im:version') {
-          param.version = value[0][key][0];
+        
+        var param = [];
+        
+        // Android側の制御にあわせて日付を文字列で保持する
+        param.updated = formatDate(new Date(entry.updated[0]), "YYYY/MM/DD hh:mm:ss");
+        param.reviewId = entry.id[0];
+        param.title = entry.title[0];
+        param.message = entry.content[0]._;
+        
+        var value;
+        for (var key in entry) {
+          if (key == 'im:contenttype') value = entry[key];
         }
-      }
+        for (var key in value[0]) {
+          if (key == 'im:rating') {
+            param.rating = value[0][key][0];
+          }
+          else if (key == 'im:version') {
+            param.version = value[0][key][0];
+          }
+        }
 
-      var reviewData = new ReviewData(param);
-      reviewDatas.push(reviewData);
-    }
+        var reviewData = new ReviewData(param);
+        reviewDatas.push(reviewData);
+      }
+    });
+    resolve(reviewDatas);
   });
-  return reviewDatas;
 }
 
 
@@ -207,15 +325,15 @@ function getAppRawData(appData, url, appfunc, checkDate) {
       return;
     }
     
-    var reviewDatas = appfunc($, appData, checkDate);
-    
-    if (config.slack.use) {
-      slackNotification(appData, reviewDatas);
-    }
-    
-    if (config.email.use) {
-      emailNotification(appData, reviewDatas);
-    }
+    appfunc($, appData, checkDate).then(function (reviewDatas) {
+      if (config.slack.use) {
+        slackNotification(appData, reviewDatas);
+      }
+      
+      if (config.email.use) {
+        emailNotification(appData, reviewDatas);
+      }
+    });
   });
 }
 
