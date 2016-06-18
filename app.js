@@ -81,10 +81,7 @@ try {
     }
 
     main(checkDate);
-    
-    // チェック日時を最新化
-    checkDate = new Date();
-    
+
     // 通知しない設定をオフにする
     firstTimeIgnore = false;
     
@@ -267,7 +264,7 @@ function analyzeIosData($, appData, checkDate) {
       
       // アプリレビューがない場合は終了
       if (result.feed.entry == null) {
-        return reviewDatas;
+        resolve(reviewDatas);
       }
       
       // アプリ情報を設定
@@ -310,6 +307,11 @@ function analyzeIosData($, appData, checkDate) {
         reviewDatas.push(reviewData);
       }
     });
+    // 通知するレビュー情報があれば、次回チェックの起点となる時刻を更新する
+    if (reviewDatas != null && reviewDatas.length > 0) {
+      checkDate.setTime(Date.now());
+    }
+    
     resolve(reviewDatas);
   });
 }
@@ -326,6 +328,7 @@ function getAppRawData(appData, url, appfunc, checkDate) {
     }
     
     appfunc($, appData, checkDate).then(function (reviewDatas) {
+      
       if (config.slack.use) {
         slackNotification(appData, reviewDatas);
       }
@@ -451,7 +454,7 @@ function emailNotification(appData, reviewDatas) {
   var mailOptions = {
       from: "Reviewet <" + config.email.from + ">",
       to: config.email.to,
-      subject: "[Reviewet]" + appData.name + "の新着レビュー",
+      subject: "[Reviewet][" + appData.kind + "]" + appData.name + "の新着レビュー",
       html: mailBody
   };
   // 先ほど宣言したトランスポートオブジェクトでメールを送信

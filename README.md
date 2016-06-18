@@ -31,7 +31,7 @@ Reviewetの動作設定は```config/default.yml```を編集することで変更
 - レビューを取得するiOSアプリ
 - レビューを取得するAndroidアプリ
 - アプリレビューを取得する対象の言語
-- cron指定による定期実行のタイミング制御（デフォルト30分置きに実行）
+- cron指定による定期実行のタイミング制御（デフォルト1時間置きに実行）
 - 初回の通知対象とするレビューをいつからのものにするか（iOSのみ）
 - 初回の通知対象に取得できたレビューをすべて含めるか（Androidのみ）
 - Slack通知の利用設定
@@ -45,7 +45,7 @@ appId:
   android: com.google.android.googlequicksearchbox
 acceptLanguage: ja
 cron:
-  time: '* */30 * * * *'
+  time: '* * */1 * * *'
   timeZone: Asia/Tokyo
 checkDate: '2016-06-01T12:00:00+09:00'
 firstTimeIgnore: false
@@ -66,8 +66,9 @@ firstTimeIgnore: false
 
 #### 3. cron
 
-本プログラムは30分毎に定期拮抗されますが、実行タイミングをcron指定で変更することが可能です。
-変更する場合は、cronの「time」にcronの記述方法で設定してください。  
+本プログラムは1時間毎に定期実行されますが、実行タイミングをcron指定で変更することが可能です。
+変更する場合は、cronの「time」にcronの記述方法で設定してください。
+左から「秒、分、時、日、月、週」になっています。  
 「timeZone」には、本プログラムを実行する環境のタイムゾーンを指定してください。
 
 #### 4. checkDate
