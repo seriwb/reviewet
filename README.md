@@ -9,17 +9,29 @@ ReviewetはiOSとAndroidのストアレビューを、SlackやEmailで通知す�
 - node.js v6+
 
 
-## Running Command
+## Running Commands
 
 ```
 $ git clone git@github.com:seriwb/reviewet.git
 $ cd reviewet
 $ vi config/default.yml    # 変更方法はSetting Cofigurationsを参照
 $ npm install
-$ node app.js
+$ forever start app.js
 ```
 
-※一度実行後、データを初期状態に戻したい場合は、reviewetディレクトリ配下に作成される```reviewet.sqlite```を削除してから```node app.js```コマンドを実行してください。
+※一度実行後、データを初期状態に戻したい場合は、reviewetディレクトリ配下に作成される```reviewet.sqlite```を削除してから```forever start app.js```コマンドを実行してください。
+
+ログをファイル保存したい場合は、```forever start -l ディレクトリパス/reviewet.log -a app.js```のようにすることで実現できます。
+
+
+### Stopping commands
+
+実行中スクリプトの停止や再起動は、以下のコマンドで実行できます。
+
+```
+$ forever stop app.js     # 停止
+$ forever restart app.js  # 再起動
+```
 
 
 ## Setting Configurations
