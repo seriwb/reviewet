@@ -16,12 +16,13 @@ $ git clone git@github.com:seriwb/reviewet.git
 $ cd reviewet
 $ vi config/default.yml    # 変更方法はSetting Cofigurationsを参照
 $ npm install
+$ npm install -g forever   # foreverコマンドを利用するため
 $ forever start app.js
 ```
 
 ※一度実行後、データを初期状態に戻したい場合は、reviewetディレクトリ配下に作成される```reviewet.sqlite```を削除してから```forever start app.js```コマンドを実行してください。
 
-ログをファイル保存したい場合は、```forever start -l ディレクトリパス/reviewet.log -a app.js```のようにすることで実現できます。
+ログをファイル保存したい場合は、```forever start -l ディレクトリパスreviewet.log -a app.js```のようにすることで実現できます。
 
 
 ### Stopping commands
