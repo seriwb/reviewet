@@ -65,8 +65,6 @@ db.serialize(function(){
     "version TEXT, " +        // レビューしたアプリのバージョン
     "create_date DATE)"       // 登録日
   );
-  
-  // TODO:再起動した際に、checkDateとそれ以降の日のデータはDBから削除する
 });
 
 
@@ -94,6 +92,11 @@ var formatDate = function (date, format) {
 };
 
 
+/**
+ * iOSアプリのレビューデータ取得元のURLを生成する。
+ * @param appId 取得対象アプリのAppStore ID
+ * @param page ページング
+ */
 function createIosUrl(appId, page) {
   var url;
   if (page != null && page > 0) {
@@ -106,6 +109,10 @@ function createIosUrl(appId, page) {
 }
 
 
+/**
+ * Androidアプリのレビューデータ取得元のURLを生成する。
+ * @param appId 取得対象アプリのGooglePlay ID
+ */
 function createAndroidUrl(appId) {
   var url = "https://play.google.com/store/apps/details?id=" + androidId + "&hl=" + lang;
   
@@ -243,6 +250,7 @@ function emailNotification(appData, reviewDatas) {
 /**
  * Androidのレビュー情報がすでにDBに存在しているかを調べる。
  * レビューIDでのカウント数を返す。（0 or 1）
+ * @param condition チェック対象のレビューデータ
  */
 function selectRecord(condition) {
   return new Promise(function (resolve, reject) {
@@ -504,7 +512,13 @@ try {
   new CronJob(cronTime, function() {
 
     var configDate = config.checkDate;
-    if (configDate != null && checkDate == null) {
+    
+    // 取得対象日が指定されていない場合は現在時刻からチェック開始
+    if (checkDate == null && configDate == null) {
+      checkDate = new Date();
+    }
+    // 取得対象日が指定されている場合はその時刻からチェック開始
+    else if (checkDate == null && configDate != null) {
       checkDate = new Date(configDate);
     }
 

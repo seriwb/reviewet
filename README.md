@@ -2,11 +2,15 @@
 
 ReviewetはiOSとAndroidのストアレビューを、SlackやEmailで通知するためのプログラムです。
 
+Androidのストアレビューにはレビュー時のバージョン情報がないため、
+通知されるAndroidレビューのバージョン情報は「-」になります。
+
+
 # How to use
 
 ## Requirement
 
-- node.js v6+
+- node.js v5+
 
 
 ## Running Commands
@@ -41,14 +45,14 @@ Reviewetの動作設定は```config/default.yml```を編集することで変更
 
 以下の内容が変更可能です。
 
-- レビューを取得するiOSアプリ
-- レビューを取得するAndroidアプリ
-- アプリレビューを取得する対象の言語
-- cron指定による定期実行のタイミング制御（デフォルト1時間置きに実行）
-- 初回の通知対象とするレビューをいつからのものにするか（iOSのみ）
-- 初回の通知対象に取得できたレビューをすべて含めるか（Androidのみ）
-- Slack通知の利用設定
-- Email通知の利用設定
+- レビューを取得するiOSアプリ：appId.iOS
+- レビューを取得するAndroidアプリ：appId.android
+- アプリレビューを取得する対象の言語：acceptLanguage
+- cron指定による定期実行のタイミング制御（デフォルト1時間置きに実行）：cron
+- 初回の通知対象とするレビューをいつからのものにするか（iOSのみ）：checkDate
+- 初回の通知対象に取得できたレビューをすべて含めるか（Androidのみ）：firstTimeIgnore
+- Slack通知の利用設定：slack
+- Email通知の利用設定：email
 
 ### Points of the changes
 
@@ -60,7 +64,7 @@ acceptLanguage: ja
 cron:
   time: '* * */1 * * *'
   timeZone: Asia/Tokyo
-checkDate: '2016-06-01T12:00:00+09:00'
+checkDate: 
 firstTimeIgnore: false
 ```
 
@@ -86,8 +90,12 @@ firstTimeIgnore: false
 
 #### 4. checkDate
 
-「checkDate」は、プログラムが初回に通知対象とするレビューを、いつに投稿されたものからかを指定するため項目です。
-設定しなかった場合は、取得可能なレビュー全てが通知対象となります。
+「checkDate」は、プログラムが初回に通知対象とするレビューを、いつに投稿されたものからかを指定するための動作チェック用項目です。
+
+```yaml
+checkDate: '2016-06-01T12:00:00+09:00'
+```
+設定しない場合は、起動後の新着レビューのみが通知対象となります。
 
 **※現在、App StoreのレビューはRSSの1ページ分までしか取得できません。**
 
