@@ -174,7 +174,7 @@ function slackNotification(appData, reviewDatas) {
       ]
     }, function(err, response) {
       if (err) {
-        console.log("Error:", err, "\n", response);
+        console.log(formatDate(Date.now(), "YYYY/MM/DD hh:mm:ss") + " Error:", err, "\n", response);
       }
       // console.log(response);
     });
@@ -466,7 +466,7 @@ function getAppRawData(appData, url, appfunc, checkDate) {
   var param = {};
   client.fetch(url, param, function (err, $, res) {
     if (err) {
-      console.log(Date.now() + " Error:", err);
+      console.log(formatDate(Date.now(), "YYYY/MM/DD hh:mm:ss") + " Error:", err);
       return;
     }
     
