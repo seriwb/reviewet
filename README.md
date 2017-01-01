@@ -49,8 +49,9 @@ Reviewetの動作設定は```config/default.yml```を編集することで変更
 - レビューを取得するAndroidアプリ：appId.android
 - アプリレビューを取得する対象の言語：acceptLanguage
 - cron指定による定期実行のタイミング制御（デフォルト1時間置きに実行）：cron
-- 初回の通知対象とするレビューをいつからのものにするか（iOSのみ）：checkDate
-- 初回の通知対象に取得できたレビューをすべて含めるか（Androidのみ）：firstTimeIgnore
+- 初回の通知対象に取得できたレビューをすべて含めるか：firstTimeIgnore
+- 初回表示で何件表示するか（未設定の場合は全件）：outputs
+  - iOSは最新から、Androidはレビューの表示順からカウント
 - Slack通知の利用設定：slack
 - Email通知の利用設定：email
 
@@ -64,13 +65,25 @@ acceptLanguage: ja
 cron:
   time: '* * */1 * * *'
   timeZone: Asia/Tokyo
-checkDate: 
-firstTimeIgnore: false
+
+firstTimeIgnore: true
+outputs: 3
 ```
 
 #### 1. appId  
 
-レビューを取得するアプリのIDを、iOSの場合はappIdの「iOS」に、Androidの場合は「android」に設定してください。（デフォルト値はサンプルです）
+レビューを取得するアプリのIDを、iOSの場合はappIdの「iOS」に、Androidの場合は「android」に設定してください。（デフォルト値はサンプルです）  
+OS毎に複数のアプリのレビュー取得をすることも可能です。以下のようにリスト形式でIDを指定してください。
+
+```yaml
+appId:
+  iOS:
+    - 490217893
+    - 544007664
+  android:
+    - com.google.android.googlequicksearchbox
+    - com.apple.android.music
+```
 
 レビュー情報取得を利用しない場合は、対象のOSのappIdの値を空にしてください。  
 （例えばGoogle Playからの情報を取得しない場合は```andorid: ```としてください）
@@ -88,22 +101,17 @@ firstTimeIgnore: false
 左から「秒、分、時、日、月、週」になっています。  
 「timeZone」には、本プログラムを実行する環境のタイムゾーンを指定してください。
 
-#### 4. checkDate
+#### 4. firstTimeIgnore
 
-「checkDate」は、プログラムが初回に通知対象とするレビューを、いつに投稿されたものからかを指定するための動作チェック用項目です。
+初回起動時に、存在するレビュー結果を無視するかどうかのオプションです。  
+起動後の新着レビューだけの通知でよい場合は`true`に、
+存在しているレビューを通知させたい場合は`false`にしてください。
 
-```yaml
-checkDate: '2016-06-01T12:00:00+09:00'
-```
-設定しない場合は、起動後の新着レビューのみが通知対象となります。
+#### 5. outputs
 
-**※現在、App StoreのレビューはRSSの1ページ分までしか取得できません。**
-
-#### 5. firstTimeIgnore
-
-初回起動時に、存在するAndroidのレビュー結果を無視するかどうかのオプションです。  
-起動後の新着レビューだけの通知でよい場合は、trueにしてください。
-
+初回起動時に、存在するアプリレビューを何件表示するかのオプションです。  
+未設定の場合は
+※firstTimeIgnoreの値が`true`の場合、この設定値は無視されます。
 
 ### to use Slack notification
 
