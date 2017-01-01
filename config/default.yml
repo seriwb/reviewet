@@ -6,8 +6,9 @@ acceptLanguage: ja
 cron:
   time: '* * */1 * * *'
   timeZone: Asia/Tokyo
-checkDate: 
-firstTimeIgnore: false
+
+firstTimeIgnore: true
+outputs: 3
 
 slack:
   use: true
