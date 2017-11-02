@@ -1,3 +1,4 @@
+process.on('unhandledRejection', console.dir);
 // アプリのデータを保持するオブジェクト
 // @param string kind ios or android
 AppData = function(kind, appId) {
@@ -114,7 +115,7 @@ function createIosUrl(appId, page) {
   } else {
     url = ios_base_url + "/id=" + appId + "/sortBy=mostRecent/xml";
   }
-  
+
   return url;
 }
 
@@ -125,17 +126,17 @@ function createIosUrl(appId, page) {
  */
 function createAndroidUrl(appId) {
   var url = "https://play.google.com/store/apps/details?id=" + appId + "&hl=" + lang;
-  
+
   return url;
 }
 
 
 function slackNotification(appData, reviewDatas) {
-  
+
   if (reviewDatas == null || reviewDatas.length == 0) {
     return;
   }
-  
+
   var Slack = require('slack-node');
 
   webhookUri = config.slack.webhook;
@@ -144,7 +145,7 @@ function slackNotification(appData, reviewDatas) {
   slack.setWebhook(webhookUri);
 
   for (var i=0; i < reviewDatas.length; i++) {
-    
+
     slack.webhook({
       channel: "#" + config.slack.channel,
       username: "reviewet",
@@ -193,14 +194,14 @@ function slackNotification(appData, reviewDatas) {
 
 
 function emailNotification(appData, reviewDatas) {
-  
+
   if (reviewDatas == null || reviewDatas.length == 0) {
     return;
   }
-  
+
   var fs = require('fs');
   var emailTemplate = fs.readFileSync('./email_template.html', 'utf8');
-  
+
   var mailBody = '';
   for (var i=0; i < reviewDatas.length; i++) {
     // Placeholderを置換する
@@ -215,9 +216,9 @@ function emailNotification(appData, reviewDatas) {
                       .replace('{{ review.version }}', reviewDatas[i].version);
     mailBody += reviewRow;
   }
-  
+
   var nodemailer = require("nodemailer");
-  
+
   // SMTPコネクションプールを作成
   var smtpConfig;
   if (config.email.smtp.auth.user != null) {
@@ -238,7 +239,7 @@ function emailNotification(appData, reviewDatas) {
     };
   }
   var transporter = nodemailer.createTransport(smtpConfig);
-  
+
   // unicode文字でメールを送信
   var mailOptions = {
       from: "Reviewet <" + config.email.from + ">",
@@ -285,7 +286,7 @@ function selectRecord(condition, kind) {
  * Insertできた場合はtrueを返す。
  */
 function insertReviewData(appData, reviewData) {
-  
+
   return new Promise(function (resolve, reject) {
 
     // レコードの有無をチェックする
@@ -315,7 +316,7 @@ function insertReviewData(appData, reviewData) {
       console.log('Failure:', err);
       reject(false);
     });
-  
+
   });
 }
 
@@ -343,7 +344,7 @@ function getAndroidReview($, appData, element) {
 
   return new Promise(function (resolve, reject) {
     var param = [];
-    
+
     var reviewInfo = $(element).find('.review-info');
     param.reviewId = $(element).find('.review-header').attr('data-reviewid');
     param.updated = $(reviewInfo).find('.review-date').text();
@@ -355,7 +356,7 @@ function getAndroidReview($, appData, element) {
 
     // アプリバージョンは取れないのでハイフンにする
     param.version = "-";
-    
+
     var reviewBody = $(element).find('.review-body.with-review-wrapper');
     param.title = $(reviewBody).find('.review-title').text();
 
@@ -364,7 +365,7 @@ function getAndroidReview($, appData, element) {
     param.message = tempMessage.trim();
 
     var reviewData = new ReviewData(param);
-    
+
     // DBに登録を試みて、登録できれば新規レビューなので通知用レビューデータとして返却する
     insertReviewData(appData, reviewData).then(function(result) {
       pushData(result, reviewData).then(function (data) {
@@ -380,12 +381,12 @@ function getAndroidReview($, appData, element) {
  * ※Androidは$をそのまま使って処理してみる
  */
 function analyzeAndroidData($, appData) {
-  
+
   return new Promise(function(resolve, reject) {
-  
+
     // レビュー本文の後ろにくる「全文を表示」を削除
     $('div.review-link').remove();
-    
+
     // アプリ情報を設定
     appData.name = $('.id-app-title').text();
 
@@ -415,28 +416,17 @@ function getIosReview($, appData, entry) {
 
   return new Promise(function (resolve, reject) {
     var param = [];
-    
+
     // Android側の制御にあわせて日付を文字列で保持する
     param.updated = formatDate(new Date(entry.updated[0]), "YYYY/MM/DD hh:mm:ss");
     param.reviewId = entry.id[0];
     param.title = entry.title[0];
     param.message = entry.content[0]._;
-    
-    var value;
-    for (var key in entry) {
-      if (key == 'im:contenttype') value = entry[key];
-    }
-    for (var key in value[0]) {
-      if (key == 'im:rating') {
-        param.rating = value[0][key][0];
-      }
-      else if (key == 'im:version') {
-        param.version = value[0][key][0];
-      }
-    }
+    param.rating = entry['im:rating'];
+    param.version = entry['im:version'] + ''; // 文字列に変換
 
     var reviewData = new ReviewData(param);
-    
+
     // DBに登録を試みて、登録できれば新規レビューなので通知用レビューデータとして返却する
     insertReviewData(appData, reviewData).then(function(result) {
       pushData(result, reviewData).then(function (data) {
@@ -453,23 +443,23 @@ function getIosReview($, appData, entry) {
 function analyzeIosData($, appData) {
 
   return new Promise(function(resolve, reject) {
-  
+
     // RSSの内容を解析してレビューデータを作成
     var parseString = require('xml2js').parseString;
     var reviewDataXml = $.xml();
     //console.log(reviewDataXml);
     var reviewDatas = [];
     parseString(reviewDataXml, function(err, result) {
-      
+
       // アプリレビューがない場合は終了
       if (result.feed.entry == null) {
         resolve(reviewDatas);
       }
-      
+
       // アプリ情報を設定
-      appData.name = result.feed.entry[0].title;   // TODO:あとでim:nameに変更
-      appData.url = result.feed.entry[0].id[0]._;       // TODO:linkから取る
-      
+      appData.name = result.feed.entry[0]['im:name'];
+      appData.url = result.feed.entry[0].link[0].$.href;
+
       // レビュー情報を設定
       var reviewProcess = [];
       for (var i=1; i < result.feed.entry.length; i++) {
@@ -499,18 +489,18 @@ function getAppRawData(appData, url, appfunc, outputs) {
       console.log(formatDate(Date.now(), "YYYY/MM/DD hh:mm:ss") + " Error:", err);
       return;
     }
-    
+
     appfunc($, appData).then(function (reviewDatas) {
-      
+
       // 表示件数制御
       if (outputs >= 0 && reviewDatas != null && reviewDatas.length > outputs) {
         reviewDatas.length = outputs;
       }
-      console.log(reviewDatas.length);
+//      console.log(reviewDatas.length);
       if (config.slack.use) {
         slackNotification(appData, reviewDatas);
       }
-      
+
       if (config.email.use) {
         emailNotification(appData, reviewDatas);
       }
@@ -526,12 +516,12 @@ function main(outputs) {
       iosId = iosIds[i];
       ios_url = createIosUrl(iosId, 1);
       iosApp = new AppData("iOS", iosId);
-      
+
       // iOSアプリのデータ取得
       getAppRawData(iosApp, ios_url, analyzeIosData, outputs);
     }
   }
-  
+
   var androidId, android_url, androidApp;
   if (androidIds != null) {
     for (var i=0; i < androidIds.length; i++) {
@@ -539,7 +529,7 @@ function main(outputs) {
       android_url = createAndroidUrl(androidId);
       androidApp = new AppData("Android", androidId);
       androidApp.url = android_url;
-      
+
       // Androidアプリのデータ取得
       getAppRawData(androidApp, android_url, analyzeAndroidData, outputs);
     }
@@ -565,7 +555,7 @@ try {
     // 通知しない設定をオフにする
     firstTimeIgnore = false;
     outputs = -1;
-    
+
   }, null, true, timeZone);
 } catch (ex) {
   console.log("cron pattern not valid");

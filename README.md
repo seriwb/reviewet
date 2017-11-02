@@ -155,4 +155,6 @@ emailの「use」をtrueにすると、メール通知機能が有効になり�
 - https://github.com/nodemailer/nodemailer#tldr-usage-example
 
 
-## MIT License
+## License
+
+MIT License
