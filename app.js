@@ -185,7 +185,7 @@ function slackNotification(appData, reviewDatas) {
       ]
     }, function(err, response) {
       if (err) {
-        console.log(formatDate(Date.now(), "YYYY/MM/DD hh:mm:ss") + " Error:", err, "\n", response);
+        console.log(formatDate(new Date(), "YYYY/MM/DD hh:mm:ss") + " Error:", err, "\n", response);
       }
       // console.log(response);
     });
@@ -289,14 +289,10 @@ function insertReviewData(appData, reviewData) {
 
   return new Promise(function (resolve, reject) {
 
-    // レコードの有無をチェックする
-    var nodata = false;
     selectRecord(reviewData, appData.kind).then(function (result) {
-      // console.log('Success:', result.cnt);
+
+      // レコードの有無をチェックする
       if (result.cnt === 0) {
-        nodata = true;
-      }
-      if (nodata) {
         db.serialize(function(){
           // 挿入用プリペアドステートメントを準備
           var ins_androidReview = db.prepare(
@@ -486,7 +482,7 @@ function getAppRawData(appData, url, appfunc, outputs) {
   var param = {};
   client.fetch(url, param, function (err, $, res) {
     if (err) {
-      console.log(formatDate(Date.now(), "YYYY/MM/DD hh:mm:ss") + " Error:", err);
+      console.log(formatDate(new Date(), "YYYY/MM/DD hh:mm:ss") + " Error:", err);
       return;
     }
 
