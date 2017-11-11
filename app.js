@@ -14,7 +14,7 @@ AppData.prototype = appDataParam;
 
 // 表示するレビュー情報を保持するオブジェクト
 ReviewData = function(param) {
-  this.updated = param.updated
+  this.updated = param.updated;
   this.reviewId = param.reviewId;
   this.title = param.title;
   this.titleLink = param.titleLink;
@@ -39,16 +39,16 @@ if (lang === "ja") {
 
 // IDがnullのものに対しては処理をしない
 var iosIds = config.appId.iOS;
-if (iosIds != null && !Array.isArray(iosIds)) {
+if (iosIds !== null && !Array.isArray(iosIds)) {
     iosIds = [iosIds];
 }
 var androidIds = config.appId.android;
-if (androidIds != null && !Array.isArray(androidIds)) {
+if (androidIds !== null && !Array.isArray(androidIds)) {
     androidIds = [androidIds];
 }
 
 // 情報取得元のURLを生成
-var ios_base_url = "http://itunes.apple.com/" + lang_sub + "/rss/customerreviews"
+var ios_base_url = "http://itunes.apple.com/" + lang_sub + "/rss/customerreviews";
 
 var cronTime = config.cron.time;
 var timeZone = config.cron.timeZone;
@@ -88,7 +88,7 @@ db.serialize(function(){
  */
 var formatDate = function (date, format) {
   if (!format) format = 'YYYY-MM-DD hh:mm:ss.SSS';
-  format = format.replace(/YYYY/g, date.getFullYear());
+  format = format.replace(/YYYY/g, date.getFullYear() + '');
   format = format.replace(/MM/g, ('0' + (date.getMonth() + 1)).slice(-2));
   format = format.replace(/DD/g, ('0' + date.getDate()).slice(-2));
   format = format.replace(/hh/g, ('0' + date.getHours()).slice(-2));
@@ -110,7 +110,7 @@ var formatDate = function (date, format) {
  */
 function createIosUrl(appId, page) {
   var url;
-  if (page != null && page > 0) {
+  if (page !== null && page > 0) {
     url = ios_base_url + "/page=" + page + "/id=" + appId + "/sortBy=mostRecent/xml";
   } else {
     url = ios_base_url + "/id=" + appId + "/sortBy=mostRecent/xml";
@@ -125,23 +125,21 @@ function createIosUrl(appId, page) {
  * @param appId 取得対象アプリのGooglePlay ID
  */
 function createAndroidUrl(appId) {
-  var url = "https://play.google.com/store/apps/details?id=" + appId + "&hl=" + lang;
-
-  return url;
+  return "https://play.google.com/store/apps/details?id=" + appId + "&hl=" + lang;
 }
 
 
 function slackNotification(appData, reviewDatas) {
 
-  if (reviewDatas == null || reviewDatas.length == 0) {
+  if (reviewDatas === null || reviewDatas.length === 0) {
     return;
   }
 
   var Slack = require('slack-node');
 
-  webhookUri = config.slack.webhook;
+  var webhookUri = config.slack.webhook;
 
-  slack = new Slack();
+  var slack = new Slack();
   slack.setWebhook(webhookUri);
 
   for (var i=0; i < reviewDatas.length; i++) {
@@ -162,7 +160,7 @@ function slackNotification(appData, reviewDatas) {
             },
             {
                "title":"Rating",
-               "value":Array(Number(reviewDatas[i].rating)+1).join(':star:'),
+               "value":new Array(Number(reviewDatas[i].rating)+1).join(':star:'),
                "short":true
             },
             {
@@ -195,7 +193,7 @@ function slackNotification(appData, reviewDatas) {
 
 function emailNotification(appData, reviewDatas) {
 
-  if (reviewDatas == null || reviewDatas.length == 0) {
+  if (reviewDatas === null || reviewDatas.length === 0) {
     return;
   }
 
@@ -210,7 +208,7 @@ function emailNotification(appData, reviewDatas) {
                       .replace(/{{ appData.url }}/g, appData.url)
                       .replace('{{ review.title }}', reviewDatas[i].title)
                       .replace('{{ review.message }}', reviewDatas[i].message)
-                      .replace('{{ review.rating }}', Array(Number(reviewDatas[i].rating)+1).join('☆'))
+                      .replace('{{ review.rating }}', new Array(Number(reviewDatas[i].rating)+1).join('☆'))
                       .replace('{{ review.updated }}', reviewDatas[i].updated)
                       .replace('{{ review.kind }}', appData.kind)
                       .replace('{{ review.version }}', reviewDatas[i].version);
@@ -221,7 +219,7 @@ function emailNotification(appData, reviewDatas) {
 
   // SMTPコネクションプールを作成
   var smtpConfig;
-  if (config.email.smtp.auth.user != null) {
+  if (config.email.smtp.auth.user !== null) {
     smtpConfig = {
       host: config.email.smtp.host,
       port: config.email.smtp.port,
@@ -448,7 +446,7 @@ function analyzeIosData($, appData) {
     parseString(reviewDataXml, function(err, result) {
 
       // アプリレビューがない場合は終了
-      if (result.feed.entry == null) {
+      if (result.feed.entry === null) {
         resolve(reviewDatas);
       }
 
@@ -465,7 +463,7 @@ function analyzeIosData($, appData) {
       Promise.all(reviewProcess).then(function(datas) {
         var returnDatas = [];
         for (var i=0; i < datas.length; i++) {
-          if (datas[i] != null) {
+          if (datas[i] !== null) {
             returnDatas.push(datas[i]);
           }
         }
@@ -489,7 +487,7 @@ function getAppRawData(appData, url, appfunc, outputs) {
     appfunc($, appData).then(function (reviewDatas) {
 
       // 表示件数制御
-      if (outputs >= 0 && reviewDatas != null && reviewDatas.length > outputs) {
+      if (outputs >= 0 && reviewDatas !== null && reviewDatas.length > outputs) {
         reviewDatas.length = outputs;
       }
 //      console.log(reviewDatas.length);
@@ -507,7 +505,7 @@ function getAppRawData(appData, url, appfunc, outputs) {
 
 function main(outputs) {
   var iosId, ios_url, iosApp;
-  if (iosIds != null) {
+  if (iosIds !== null) {
     for (var i=0; i < iosIds.length; i++) {
       iosId = iosIds[i];
       ios_url = createIosUrl(iosId, 1);
@@ -519,7 +517,7 @@ function main(outputs) {
   }
 
   var androidId, android_url, androidApp;
-  if (androidIds != null) {
+  if (androidIds !== null) {
     for (var i=0; i < androidIds.length; i++) {
       androidId = androidIds[i];
       android_url = createAndroidUrl(androidId);
@@ -538,7 +536,7 @@ try {
   new CronJob(cronTime, function() {
 
     // 未設定の場合は全件表示
-    if (outputs == null) {
+    if (outputs === null) {
       outputs = -1;
     }
     // 文字列から数値変換

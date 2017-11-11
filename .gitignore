@@ -34,3 +34,6 @@ node_modules
 
 # DB
 *.sqlite
+
+/.idea
+*.iml
