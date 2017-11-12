@@ -4,7 +4,7 @@ appId:
   android: com.google.android.googlequicksearchbox
 acceptLanguage: ja
 cron:
-  time: '* * */1 * * *'
+  time: '0 * * * *'
   timeZone: Asia/Tokyo
 
 firstTimeIgnore: true

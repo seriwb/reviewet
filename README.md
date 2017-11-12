@@ -63,7 +63,7 @@ appId:
   android: com.google.android.googlequicksearchbox
 acceptLanguage: ja
 cron:
-  time: '* * */1 * * *'
+  time: '0 * * * *'
   timeZone: Asia/Tokyo
 
 firstTimeIgnore: true
@@ -98,7 +98,7 @@ appId:
 
 本プログラムは1時間毎に定期実行されますが、実行タイミングをcron指定で変更することが可能です。
 変更する場合は、cronの「time」にcronの記述方法で設定してください。
-左から「秒、分、時、日、月、週」になっています。  
+左から「秒(オプション)、分、時、日、月、週」になっています。  
 「timeZone」には、本プログラムを実行する環境のタイムゾーンを指定してください。
 
 #### 4. firstTimeIgnore
