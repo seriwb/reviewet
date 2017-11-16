@@ -1,15 +1,3 @@
-// アプリのデータを保持するオブジェクト
-// @param string kind ios or android
-AppData = function(kind, appId) {
-  this.kind = kind;
-  this.appId = appId;
-};
-var appDataParam = {
-  name : "",
-  url : "",
-  recentId : ""
-};
-AppData.prototype = appDataParam;
 
 // 表示するレビュー情報を保持するオブジェクト
 ReviewData = function(param) {
@@ -468,11 +456,12 @@ function analyzeIosData($, appData) {
   });
 }
 
+import client from 'cheerio-httpcli';
 
 function getAppRawData(appData, url, appfunc, outputs) {
   // アプリのレビューデータを取得
-  var client = require('cheerio-httpcli');
-  var param = {};
+  //var client = require('cheerio-httpcli');
+  let param = {};
   client.fetch(url, param, function (err, $, res) {
     if (err) {
       console.log(formatDate(new Date(), "YYYY/MM/DD hh:mm:ss") + " Error:", err);
@@ -497,26 +486,27 @@ function getAppRawData(appData, url, appfunc, outputs) {
   });
 }
 
+import AppData from './AppData';
 
-function main(outputs) {
-  var iosId, ios_url, iosApp;
+export default function main(outputs) {
   if (iosIds !== null) {
-    for (var i=0; i < iosIds.length; i++) {
-      iosId = iosIds[i];
-      ios_url = createIosUrl(iosId, 1);
-      iosApp = new AppData("iOS", iosId);
+    for (let i=0; i < iosIds.length; i++) {
+      let iosId = iosIds[i];
+      let ios_url = createIosUrl(iosId, 1);
+      let iosApp = new AppData("iOS", iosId);
 
       // iOSアプリのデータ取得
       getAppRawData(iosApp, ios_url, analyzeIosData, outputs);
     }
   }
 
-  var androidId, android_url, androidApp;
   if (androidIds !== null) {
-    for (var i=0; i < androidIds.length; i++) {
-      androidId = androidIds[i];
-      android_url = createAndroidUrl(androidId);
-      androidApp = new AppData("Android", androidId);
+    for (let i=0; i < androidIds.length; i++) {
+      let androidId = androidIds[i];
+      let android_url = createAndroidUrl(androidId);
+      let androidApp = new AppData("Android", androidId);
+
+      // Androidはストアサイトから直接データを取得するので、遷移先のURLにそのまま使う
       androidApp.url = android_url;
 
       // Androidアプリのデータ取得
@@ -524,5 +514,3 @@ function main(outputs) {
     }
   }
 }
-
-export default main;

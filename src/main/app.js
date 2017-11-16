@@ -3,7 +3,8 @@ process.on('unhandledRejection', console.dir);
 // モジュールの取り込み
 import app from "./service";
 
-let config = require('config');
+import config from 'config';
+import { CronJob } from 'cron';
 
 const cronTime = config.cron.time;
 const timeZone = config.cron.timeZone;
@@ -13,7 +14,7 @@ let firstTimeIgnore = config.firstTimeIgnore;
 let outputs = config.outputs;
 
 try {
-  const CronJob = require('cron').CronJob;
+//  const CronJob = require('cron').CronJob;
   new CronJob(cronTime, function() {
 
     // 未設定の場合は全件表示
