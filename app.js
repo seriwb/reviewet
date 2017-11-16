@@ -55,8 +55,8 @@ var timeZone = config.cron.timeZone;
 
 var DB_PATH = __dirname + "/reviewet.sqlite";
 
-// 初回通知しないオプション（起動後に設定されたレビュー結果を通知しないためのオプション）
-var firstTimeIgnore = config.firstTimeIgnore;
+// 通知しない設定
+var ignoreNotification = config.firstTimeIgnore;
 var outputs = config.outputs;
 // --- ここまで ---
 
@@ -320,10 +320,11 @@ function insertReviewData(appData, reviewData) {
  */
 function pushData(result, reviewData) {
   return new Promise(function (resolve, reject) {
-    // レビュー情報が重複している、または初回通知しないオプションが付いていれば通知対象にしない
-    if (result && !firstTimeIgnore) {
+    // DB登録ができて通知可能な場合に、通知対象とする
+    if (result !== false && !ignoreNotification) {
       resolve(reviewData);
     } else {
+      // レビュー情報が重複している、または通知しないオプションが付いていれば通知対象にしない
       resolve(null);
     }
   });
@@ -547,7 +548,7 @@ try {
     main(outputs);
 
     // 通知しない設定をオフにする
-    firstTimeIgnore = false;
+    ignoreNotification = false;
     outputs = -1;
 
   }, null, true, timeZone);
