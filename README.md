@@ -10,33 +10,36 @@ Androidのストアレビューにはレビュー時のバージョン情報が�
 
 ## Requirement
 
-- node.js v5+
+- Node.js v8.9.0+
 
 
-## Running Commands
+## Running commands
+
+Reviewetを実行するためには、Node.jsとgitがインストールされた環境で、以下のコマンドを実施してください。
 
 ```
-$ git clone git@github.com:seriwb/reviewet.git
+$ git clone https://github.com/seriwb/reviewet.git
 $ cd reviewet
 $ vi config/default.yml    # 変更方法はSetting Cofigurationsを参照
 $ npm install
-$ npm install -g forever   # foreverコマンドを利用するため
-$ forever start app.js
+$ npm build
+$ npm run fstart
 ```
 
-※一度実行後、データを初期状態に戻したい場合は、reviewetディレクトリ配下に作成される```reviewet.sqlite```を削除してから```forever start app.js```コマンドを実行してください。
+### Maintenance commands
 
-ログをファイル保存したい場合は、```forever start -l ディレクトリパスreviewet.log -a app.js```のようにすることで実現できます。
+登録された以下のforeverコマンドを使って、Reviewetのメンテナンスを行うことができます。
+
+| コマンド          | 用途     |
+| :--------------- | :------------- |
+| npm run flist    | 稼動状況をチェック |
+| npm run fstop    | Reviewetの停止    |
+| npm run fstart   | Reviewetの起動    |
+| npm run frestart | Reviewetの再起動  |
 
 
-### Stopping commands
+※一度実行後、データを初期状態に戻したい場合は、reviewetディレクトリ配下に作成される```reviewet.sqlite```を削除して再実行してください。
 
-実行中スクリプトの停止や再起動は、以下のコマンドで実行できます。
-
-```
-$ forever stop app.js     # 停止
-$ forever restart app.js  # 再起動
-```
 
 
 ## Setting Configurations
@@ -153,6 +156,19 @@ emailの「use」をtrueにすると、メール通知機能が有効になり�
 > To use Gmail you may need to configure ["Allow Less Secure Apps"](https://www.google.com/settings/security/lesssecureapps) in your Gmail account unless you are using 2FA in which case you would have to create an [Application Specific](https://security.google.com/settings/security/apppasswords) password. You also may need to unlock your account with ["Allow access to your Google account"](https://accounts.google.com/DisplayUnlockCaptcha) to use SMTP.
 
 - https://github.com/nodemailer/nodemailer#tldr-usage-example
+
+
+## For Developer
+
+Reviewetの実行コードは、`src/main`配下のコードをbabelでトランスパイルして`dist/main`配下に出力しています。
+
+コード変更後は、以下のコマンドで実行コードを再生成してください。
+
+```
+$ npm run clean; npm run build
+```
+
+また動作確認には、`npm start`コマンドが利用できます。
 
 
 ## License
