@@ -4,21 +4,20 @@
   "description": "Getting App Store and Google Play's review and notify to either slack or email.",
   "dependencies": {
     "cheerio-httpcli": "^0.7.2",
-    "config": "^1.28.1",
+    "config": "^1.30.0",
     "cron": "^1.3.0",
     "forever": "^0.15.3",
     "fs": "0.0.2",
-    "js-yaml": "^3.10.0",
-    "nodemailer": "^4.4.0",
+    "js-yaml": "^3.11.0",
+    "nodemailer": "^4.6.4",
     "slack-node": "^0.2.0",
-    "sqlite3": "^3.1.13",
+    "sqlite3": "^4.0.0",
     "xml2js": "^0.4.19"
   },
   "main": "dist/main/app.js",
   "devDependencies": {
     "babel-cli": "^6.26.0",
     "babel-core": "^6.26.0",
-    "babel-loader": "^7.1.2",
     "babel-preset-env": "^1.6.1"
   },
   "scripts": {

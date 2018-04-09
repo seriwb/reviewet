@@ -22,7 +22,7 @@ $ git clone https://github.com/seriwb/reviewet.git
 $ cd reviewet
 $ vi config/default.yml    # 変更方法はSetting Cofigurationsを参照
 $ npm install
-$ npm build
+$ npm run build
 $ npm run fstart
 ```
 
