@@ -48,9 +48,9 @@ Reviewetの動作設定は```config/default.yml```を編集することで変更
 
 以下の内容が変更可能です。
 
-- レビューを取得するiOSアプリ：appId.iOS
-- レビューを取得するAndroidアプリ：appId.android
-- アプリレビューを取得する対象の言語：acceptLanguage
+- レビューを取得するiOSアプリ：app.iOS
+- レビューを取得するAndroidアプリ：app.android
+- アプリレビューを取得する対象の言語：app.iOS.countryCode, app.android.languageCode
 - cron指定による定期実行のタイミング制御（デフォルト1時間置きに実行）：cron
 - 初回の通知対象に取得できたレビューをすべて含めるか：firstTimeIgnore
 - 初回表示で何件表示するか（未設定の場合は全件）：outputs
@@ -61,10 +61,13 @@ Reviewetの動作設定は```config/default.yml```を編集することで変更
 ### Points of the changes
 
 ```yaml
-appId:
-  iOS: 490217893
-  android: com.google.android.googlequicksearchbox
-acceptLanguage: ja
+app:
+  iOS:
+    id: 490217893
+    countryCode: jp
+  android:
+    id: com.google.android.googlequicksearchbox
+    languageCode: ja
 cron:
   time: '0 * * * *'
   timeZone: Asia/Tokyo
@@ -73,44 +76,48 @@ firstTimeIgnore: true
 outputs: 3
 ```
 
-#### 1. appId  
+#### 1. app
 
-レビューを取得するアプリのIDを、iOSの場合はappIdの「iOS」に、Androidの場合は「android」に設定してください。（デフォルト値はサンプルです）  
-OS毎に複数のアプリのレビュー取得をすることも可能です。以下のようにリスト形式でIDを指定してください。
+レビューを取得するアプリのIDを、iOSの場合はappの「iOS」に、Androidの場合は「android」に設定してください。（デフォルト値はサンプルです）
+OS毎に複数のアプリ、複数の国（iOS）・国（android）のレビュー取得をすることも可能です。以下のようにリスト形式で指定してください。
 
 ```yaml
-appId:
+app:
   iOS:
-    - 490217893
-    - 544007664
+    - id: 490217893
+      countryCode: jp
+    - id: 544007664
+      countryCode:
+        - jp
+        - us
   android:
-    - com.google.android.googlequicksearchbox
-    - com.apple.android.music
+    - id: com.google.android.googlequicksearchbox
+      languageCode: ja
+    - id: com.apple.android.music
+      languageCode:
+        - fr
+        - it
 ```
 
-レビュー情報取得を利用しない場合は、対象のOSのappIdの値を空にしてください。  
+レビュー情報取得を利用しない場合は、対象のOSのappの値を空にしてください。
 （例えばGoogle Playからの情報を取得しない場合は```andorid: ```としてください）
 
-#### 2. acceptLanguage
+**※現在、app.android.languageCodeに日本（ja）以外を指定した場合、AndroidアプリレビューのRatingが取得できません。**
 
-レビューを取得するストアの言語を国別コードで指定してください。
-
-**※現在、acceptLanguageに日本（ja）以外を指定した場合、AndroidアプリレビューのRatingが取得できません。**
-
-#### 3. cron
+#### 2. cron
 
 本プログラムは1時間毎に定期実行されますが、実行タイミングをcron指定で変更することが可能です。
 変更する場合は、cronの「time」にcronの記述方法で設定してください。
 左から「秒(オプション)、分、時、日、月、週」になっています。  
 「timeZone」には、本プログラムを実行する環境のタイムゾーンを指定してください。
 
-#### 4. firstTimeIgnore
+#### 3. firstTimeIgnore
 
 初回起動時に、存在するレビュー結果を無視するかどうかのオプションです。  
 起動後の新着レビューだけの通知でよい場合は`true`に、
 存在しているレビューを通知させたい場合は`false`にしてください。
 
-#### 5. outputs
+#### 4. outputs
 
 初回起動時に、存在するアプリレビューを何件表示するかのオプションです。  
 未設定の場合は
