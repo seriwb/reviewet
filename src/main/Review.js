@@ -19,18 +19,20 @@ export default class Review {
     this.config = config;
     this.db = db;
 
-    // 国別コードの指定はjaをメインに、jpをサブにする。
-    this.lang = this.config.acceptLanguage;
-    this.lang_sub = this.lang;
-    if (this.lang === "ja") {
-      this.lang_sub = "jp"
-    } else if (this.lang === "jp") {
-      this.lang = "ja"
+    // 下位互換性
+    if (this.config.appId) {
+      // 国別コードの指定はjaをメインに、jpをサブにする。
+      this.lang = this.config.acceptLanguage;
+      this.lang_sub = this.lang;
+      if (this.lang === "ja") {
+        this.lang_sub = "jp"
+      } else if (this.lang === "jp") {
+        this.lang = "ja"
+      }
     }
 
     // 情報取得元のURLを生成
     this.ios_base_url = "http://itunes.apple.com/" + this.lang_sub + "/rss/customerreviews";
-
     // 初回通知しないオプション（起動後に設定されたレビュー結果を通知しないためのオプション）
     this.ignoreNotification = ignoreNotification;
 
@@ -53,32 +55,63 @@ export default class Review {
    * reviewetのメイン処理
    *
    * 指定されたiOS/AndroidのアプリIDに対して、レビューの取得処理を実施する。
-   * IDが指定されていないOSについては何もしない。
+   * 設定されていないOSについては何もしない。
    */
   main() {
-    let iosIds = this.config.appId.iOS;
-    if (iosIds !== null && !Array.isArray(iosIds)) {
-      iosIds = [iosIds];
+    if (this.config.appId) {
+      // 下位互換性
+      let iosIds = this.config.appId.iOS;
+      if (iosIds !== null && !Array.isArray(iosIds)) {
+        iosIds = [iosIds];
+      }
+      this.ios(iosIds.map(e => {
+        return {
+          id: e,
+          countryCode: this.lang_sub,
+        }
+      }));
+    } else {
+      let iosApps = this.config.app.iOS;
+      if (iosApps !== null && !Array.isArray(iosApps)) {
+        iosApps = [iosApps];
+      }
+      this.ios(iosApps);
     }
-    this.ios(iosIds);
 
-    let androidIds = this.config.appId.android;
-    if (androidIds !== null && !Array.isArray(androidIds)) {
-      androidIds = [androidIds];
+    if (this.config.appId) {
+      // 下位互換性
+      let androidIds = this.config.appId.android;
+      if (androidIds !== null && !Array.isArray(androidIds)) {
+        androidIds = [androidIds];
+      }
+      this.android(androidIds.map(e => {
+        return {
+          id: e,
+          languageCode: this.lang,
+        }
+      }));
+    } else {
+      let androidApps = this.config.app.android;
+      if (androidApps !== null && !Array.isArray(androidApps)) {
+        androidApps = [androidApps];
+      }
+      this.android(androidApps);
     }
-    this.android(androidIds);
   }
 
   /**
    * iOSのストアレビューを通知する
    *
-   * @param iosIds
+   * @param {array<Object>} iosApps アプリリスト
+   * @param {string} iosApp.id アプリID
+   * @param {string} iosApp.countryCode 国コード
    */
-  ios(iosIds) {
-    if (iosIds !== null) {
-      for (let i = 0; i < iosIds.length; i++) {
-        let iosId = iosIds[i];
-        let ios_url = this.createIosUrl(iosId, 1);
+  ios(iosApps) {
+    if (iosApps !== null) {
+      for (let i = 0; i < iosApps.length; i++) {
+        let iosId = iosApps[i].id;
+        let iosCountryCode = iosApps[i].countryCode;
+        let ios_url = this.createIosUrl(iosId, iosCountryCode);
         let iosApp = new AppData("iOS", iosId);
 
         // iOSアプリのレビューを通知
@@ -90,13 +123,16 @@ export default class Review {
   /**
    * Androidのストアレビューを通知する
    *
-   * @param androidIds
+   * @param {array<object>} androidApps アプリリスト
+   * @param {string} androidApp.id アプリID
+   * @param {string} androidApp.languageCode 言語コード
    */
-  android(androidIds) {
-    if (androidIds !== null) {
-      for (let i = 0; i < androidIds.length; i++) {
-        let androidId = androidIds[i];
-        let android_url = this.createAndroidUrl(androidId);
+  android(androidApps) {
+    if (androidApps !== null) {
+      for (let i = 0; i < androidApps.length; i++) {
+        let androidId = androidApps[i].id;
+        let androidLanguageCode = androidApps[i].languageCode;
+        let android_url = this.createAndroidUrl(androidId, androidLanguageCode);
         let androidApp = new AppData("Android", androidId);
 
         // Androidはストアサイトから直接データを取得するので、遷移先のURLにそのまま使う
@@ -149,15 +185,16 @@ export default class Review {
 
   /**
    * iOSアプリのレビューデータ取得元のURLを生成する。
-   * @param appId 取得対象アプリのAppStore ID
-   * @param page ページング
+   * @param {string} appId 取得対象アプリのAppStore ID
+   * @param {string} countryCode 取得対象アプリのAppStore国コード
+   * @param {number} page ページインデックス
    */
-  createIosUrl(appId, page) {
-    let url;
+  createIosUrl(appId, countryCode, page) {
+    let url = "http://itunes.apple.com/" + countryCode + "/rss/customerreviews";
     if (page !== null && page > 0) {
-      url = this.ios_base_url + "/page=" + page + "/id=" + appId + "/sortBy=mostRecent/xml";
+      url += "/page=" + page + "/id=" + appId + "/sortBy=mostRecent/xml";
     } else {
-      url = this.ios_base_url + "/id=" + appId + "/sortBy=mostRecent/xml";
+      url += "/id=" + appId + "/sortBy=mostRecent/xml";
     }
 
     return url;
@@ -165,10 +202,11 @@ export default class Review {
 
   /**
    * Androidアプリのレビューデータ取得元のURLを生成する。
-   * @param appId 取得対象アプリのGooglePlay ID
+   * @param {string} appId 取得対象アプリのGooglePlay ID
+   * @param {string} languageCode 取得対象アプリのGooglePlay言語コード
    */
-  createAndroidUrl(appId) {
-    return "https://play.google.com/store/apps/details?id=" + appId + "&hl=" + this.lang;
+  createAndroidUrl(appId, languageCode) {
+    return "https://play.google.com/store/apps/details?id=" + appId + "&hl=" + languageCode;
   }
 
   /**
