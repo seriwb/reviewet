@@ -72,10 +72,18 @@ export default class Review {
       }));
     } else {
       let iosApps = this.config.app.iOS;
-      if (iosApps !== null && !Array.isArray(iosApps)) {
-        iosApps = [iosApps];
+      if (iosApps) {
+        if (!Array.isArray(iosApps)) {
+          iosApps = [iosApps];
+        }
+        iosApps = iosApps.map(e => {
+          if (!Array.isArray(e.countryCode)) {
+            e.countryCode = [e.countryCode]
+          }
+          return e
+        })
+        this.ios(iosApps);
       }
-      this.ios(iosApps);
     }
 
     if (this.config.appId) {
@@ -92,10 +100,18 @@ export default class Review {
       }));
     } else {
       let androidApps = this.config.app.android;
-      if (androidApps !== null && !Array.isArray(androidApps)) {
-        androidApps = [androidApps];
+      if (androidApps) {
+        if (!Array.isArray(androidApps)) {
+          androidApps = [androidApps];
+        }
+        androidApps = androidApps.map(e => {
+          if (!Array.isArray(e.languageCode)) {
+            e.languageCode = [e.languageCode]
+          }
+          return e
+        })
+        this.android(androidApps);
       }
-      this.android(androidApps);
     }
   }
 
@@ -104,18 +120,21 @@ export default class Review {
    *
    * @param {array<Object>} iosApps アプリリスト
    * @param {string} iosApp.id アプリID
-   * @param {string} iosApp.countryCode 国コード
+   * @param {array<string>} iosApp.countryCode 国コード
    */
   ios(iosApps) {
     if (iosApps !== null) {
       for (let i = 0; i < iosApps.length; i++) {
         let iosId = iosApps[i].id;
-        let iosCountryCode = iosApps[i].countryCode;
-        let ios_url = this.createIosUrl(iosId, iosCountryCode);
-        let iosApp = new AppData("iOS", iosId);
+        let iosCountryCodes = iosApps[i].countryCode;
+        for (let j = 0; j < iosCountryCodes.length; j++) {
+          let iosCountryCode = iosCountryCodes[j];
+          let ios_url = this.createIosUrl(iosId, iosCountryCode);
+          let iosApp = new AppData("iOS", iosId, iosCountryCode);
 
-        // iOSアプリのレビューを通知
-        this.noticeAppReview(iosApp, ios_url, this.analyzeIosData);
+          // iOSアプリのレビューを通知
+          this.noticeAppReview(iosApp, ios_url, this.analyzeIosData);
+        }
       }
     }
   }
@@ -125,21 +144,24 @@ export default class Review {
    *
    * @param {array<object>} androidApps アプリリスト
    * @param {string} androidApp.id アプリID
-   * @param {string} androidApp.languageCode 言語コード
+   * @param {array<string>} androidApp.languageCode 言語コード
    */
   android(androidApps) {
     if (androidApps !== null) {
       for (let i = 0; i < androidApps.length; i++) {
         let androidId = androidApps[i].id;
-        let androidLanguageCode = androidApps[i].languageCode;
-        let android_url = this.createAndroidUrl(androidId, androidLanguageCode);
-        let androidApp = new AppData("Android", androidId);
+        let androidLanguageCodes = androidApps[i].languageCode;
+        for (let j = 0; j < androidLanguageCodes.length; j++) {
+          let androidLanguageCode = androidLanguageCodes[j];
+          let android_url = this.createAndroidUrl(androidId, androidLanguageCode);
+          let androidApp = new AppData("Android", androidId, androidLanguageCode);
 
-        // Androidはストアサイトから直接データを取得するので、遷移先のURLにそのまま使う
-        androidApp.url = android_url;
+          // Androidはストアサイトから直接データを取得するので、遷移先のURLにそのまま使う
+          androidApp.url = android_url;
 
-        // Androidアプリのレビューを通知
-        this.noticeAppReview(androidApp, android_url, this.analyzeAndroidData);
+          // Androidアプリのレビューを通知
+          this.noticeAppReview(androidApp, android_url, this.analyzeAndroidData);
+        }
       }
     }
   }
@@ -221,8 +243,9 @@ export default class Review {
       parseString(reviewDataXml, (err, result) => {
 
         // アプリレビューがない場合は終了
-        if (result.feed.entry === null) {
+        if (!result.feed.entry) {
           resolve(reviewDatas);
+          return
         }
 
         // アプリ情報を設定

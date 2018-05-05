@@ -6,7 +6,9 @@ acceptLanguage: ja
 # app:
 #   iOS:
 #     id: 490217893
-#     countryCode: jp
+#     countryCode:
+#       - jp
+#       - us
 #   android:
 #     id: com.google.android.googlequicksearchbox
 #     languageCode: ja
