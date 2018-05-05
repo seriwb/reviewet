@@ -61,15 +61,17 @@ export default class Review {
     if (this.config.appId) {
       // 下位互換性
       let iosIds = this.config.appId.iOS;
-      if (iosIds !== null && !Array.isArray(iosIds)) {
-        iosIds = [iosIds];
-      }
-      this.ios(iosIds.map(e => {
-        return {
-          id: e,
-          countryCode: this.lang_sub,
+      if (iosIds) {
+        if (!Array.isArray(iosIds)) {
+          iosIds = [iosIds];
         }
-      }));
+        this.ios(iosIds.map(e => {
+          return {
+            id: e,
+            countryCode: [this.lang_sub],
+          }
+        }));
+      }
     } else {
       let iosApps = this.config.app.iOS;
       if (iosApps) {
@@ -89,15 +91,17 @@ export default class Review {
     if (this.config.appId) {
       // 下位互換性
       let androidIds = this.config.appId.android;
-      if (androidIds !== null && !Array.isArray(androidIds)) {
-        androidIds = [androidIds];
-      }
-      this.android(androidIds.map(e => {
-        return {
-          id: e,
-          languageCode: this.lang,
+      if (androidIds) {
+        if (!Array.isArray(androidIds)) {
+          androidIds = [androidIds];
         }
-      }));
+        this.android(androidIds.map(e => {
+          return {
+            id: e,
+            languageCode: [this.lang],
+          }
+        }));
+      }
     } else {
       let androidApps = this.config.app.android;
       if (androidApps) {
