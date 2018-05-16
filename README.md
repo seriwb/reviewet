@@ -55,6 +55,7 @@ Reviewetの動作設定は```config/default.yml```を編集することで変更
 - 初回の通知対象に取得できたレビューをすべて含めるか：firstTimeIgnore
 - 初回表示で何件表示するか（未設定の場合は全件）：outputs
   - iOSは最新から、Androidはレビューの表示順からカウント
+- HTTP同時接続数の制限：maxConnections
 - Slack通知の利用設定：slack
 - Email通知の利用設定：email
 
@@ -74,6 +75,7 @@ cron:
 
 firstTimeIgnore: true
 outputs: 3
+maxConnections: 1
 ```
 
 #### 1. app
@@ -122,6 +124,12 @@ app:
 初回起動時に、存在するアプリレビューを何件表示するかのオプションです。  
 未設定の場合は
 ※firstTimeIgnoreの値が`true`の場合、この設定値は無視されます。
+
+#### 5. maxConnections
+
+HTTPの同時接続数を制限するオプションです。
+未設定の場合は制限されません。
+VPSの仕様などで同時接続数に制限がある場合に設定してください。
 
 ### to use Slack notification
 
