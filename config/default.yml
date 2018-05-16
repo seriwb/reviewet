@@ -19,7 +19,7 @@ cron:
 
 firstTimeIgnore: true
 outputs: 3
-maxConnections:
+maxConnections: 1
 
 slack:
   use: true
