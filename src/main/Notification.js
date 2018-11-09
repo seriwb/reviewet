@@ -63,7 +63,12 @@ export default class Notification {
                 "title": "Version",
                 "value": this.reviewDatas[i].version,
                 "short": true
-              }
+              },
+              {
+                "title": "Language/Country",
+                "value": this.appData.langCountryCode,
+                "short": true
+              },
             ]
           }
         ]

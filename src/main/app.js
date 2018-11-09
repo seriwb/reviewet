@@ -5,6 +5,7 @@ process.on('unhandledRejection', console.dir);
 // モジュールの取り込み
 import config from 'config';
 import { CronJob } from 'cron';
+import http from 'http';
 const sqlite3 = require('sqlite3').verbose();
 
 import Review from './Review';
@@ -34,6 +35,11 @@ db.serialize(function(){
     "PRIMARY KEY (id, kind))"
   );
 });
+
+// HTTPコネクション数の制限
+if (config.maxConnections) {
+  http.globalAgent.maxSockets = config.maxConnections
+}
 
 try {
 //  const CronJob = require('cron').CronJob;
