@@ -36,8 +36,8 @@ $ npm run fstart
 $ git clone https://github.com/seriwb/reviewet.git
 $ cd reviewet
 $ vi config/default.yml    # 変更方法はSetting Cofigurationsを参照
-$ docker build -t reviewet ./
-$ docker run -v `pwd`:/reviewet -itd reviewet
+$ sudo docker build -t reviewet ./
+$ sudo docker run -v `pwd`:/reviewet -itd reviewet
 ```
 
 
@@ -52,9 +52,7 @@ $ docker run -v `pwd`:/reviewet -itd reviewet
 | npm run fstart   | Reviewetの起動     |
 | npm run frestart | Reviewetの再起動   |
 
-
 ※一度実行後、データを初期状態に戻したい場合は、reviewetディレクトリ配下に作成される```reviewet.sqlite```を削除して再実行してください。
-
 
 
 ## Setting Configurations
@@ -206,11 +204,10 @@ $ npm run clean; npm run build
 以下のようにすることで、Dockerを利用して開発することができます。
 
 ```
-$ docker build -t reviewet-local ./
-$ docker run -v `pwd`:/reviewet -itd reviewet-local /bin/bash
-$ docker attach コンテナID
+$ sudo docker build -t reviewet-local ./
+$ sudo docker run -v `pwd`:/reviewet -itd reviewet-local /bin/bash
+$ sudo docker attach コンテナID
 ```
-
 
 ## License
 
