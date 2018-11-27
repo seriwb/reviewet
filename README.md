@@ -12,6 +12,10 @@ Androidのストアレビューにはレビュー時のバージョン情報が�
 
 - Node.js v8.9.0+
 
+or
+
+- Docker
+
 
 ## Running commands
 
@@ -26,20 +30,29 @@ $ npm run build
 $ npm run fstart
 ```
 
+または、Docker環境下で以下のように実施してください。
+
+```
+$ git clone https://github.com/seriwb/reviewet.git
+$ cd reviewet
+$ vi config/default.yml    # 変更方法はSetting Cofigurationsを参照
+$ sudo docker build -t reviewet ./
+$ sudo docker run -v `pwd`:/reviewet -itd reviewet
+```
+
+
 ### Maintenance commands
 
 登録された以下のforeverコマンドを使って、Reviewetのメンテナンスを行うことができます。
 
-| コマンド          | 用途     |
-| :--------------- | :------------- |
+| コマンド         | 用途               |
+| :--------------- | :----------------- |
 | npm run flist    | 稼動状況をチェック |
-| npm run fstop    | Reviewetの停止    |
-| npm run fstart   | Reviewetの起動    |
-| npm run frestart | Reviewetの再起動  |
-
+| npm run fstop    | Reviewetの停止     |
+| npm run fstart   | Reviewetの起動     |
+| npm run frestart | Reviewetの再起動   |
 
 ※一度実行後、データを初期状態に戻したい場合は、reviewetディレクトリ配下に作成される```reviewet.sqlite```を削除して再実行してください。
-
 
 
 ## Setting Configurations
@@ -185,6 +198,16 @@ $ npm run clean; npm run build
 
 また動作確認には、`npm start`コマンドが利用できます。
 
+
+### Docker build
+
+以下のようにすることで、Dockerを利用して開発することができます。
+
+```
+$ sudo docker build -t reviewet-local ./
+$ sudo docker run -v `pwd`:/reviewet -itd reviewet-local /bin/bash
+$ sudo docker attach コンテナID
+```
 
 ## License
 
