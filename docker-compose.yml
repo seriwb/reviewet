@@ -1,0 +1,16 @@
+version: '2'
+services:
+  app:
+    build: .
+    container_name: reviewet
+    tty: true
+    links:
+      - browser
+
+  browser:
+    build: ./headless_chrome/
+    container_name: headless_chrome
+    tty: true
+    ports:
+      - '9222:9222'
+
