@@ -321,9 +321,9 @@ export default class Review {
     return new Promise((resolve, reject) => {
       gplay.reviews({
         appId: appData.appId,
-        sort: gplay.sort.RATING,
-        lang: "ja",
-        num: 2
+        sort: gplay.sort.NEWEST,
+        lang: appData.langCountryCode,
+        num: 5
       }).then(function(value) {
         let reviewProcess = []
         for(let element of value) {
