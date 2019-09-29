@@ -1,24 +1,23 @@
 ---
-appId:
-  iOS: 490217893
-  android: com.google.android.googlequicksearchbox
-acceptLanguage: ja
-# app:
-#   iOS:
-#     id: 490217893
-#     countryCode:
-#       - jp
-#       - us
-#   android:
-#     id: com.google.android.googlequicksearchbox
-#     languageCode: ja
+app:
+  iOS:
+    - id: 443904275
+      name: "iOSアプリ名前"
+      countryCode: 
+        - jp
+  android:
+    - id: jp.naver.line.android
+      name: "Androidアプリ名前"
+      languageCode:
+        - ja
+        - en
 
 cron:
-  time: '0 * * * *'
+  time: '*/1 * * * *'
   timeZone: Asia/Tokyo
 
-firstTimeIgnore: true
-outputs: 3
+firstTimeIgnore: false
+outputs: 2
 maxConnections: 1
 
 slack:

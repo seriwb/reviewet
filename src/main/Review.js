@@ -131,11 +131,13 @@ export default class Review {
     if (iosApps !== null) {
       for (let i = 0; i < iosApps.length; i++) {
         let iosId = iosApps[i].id;
+        let name = iosApps[i].name;
         let iosCountryCodes = iosApps[i].countryCode;
         for (let j = 0; j < iosCountryCodes.length; j++) {
           let iosCountryCode = iosCountryCodes[j];
           let ios_url = this.createIosUrl(iosId, iosCountryCode);
           let iosApp = new AppData("iOS", iosId, iosCountryCode);
+          iosApp.name = name
 
           // iOSアプリのレビューを通知
           this.noticeAppReview(iosApp, ios_url, this.analyzeIosData);
@@ -155,11 +157,13 @@ export default class Review {
     if (androidApps !== null) {
       for (let i = 0; i < androidApps.length; i++) {
         let androidId = androidApps[i].id;
+        let name = androidApps[i].name;
         let androidLanguageCodes = androidApps[i].languageCode;
         for (let j = 0; j < androidLanguageCodes.length; j++) {
           let androidLanguageCode = androidLanguageCodes[j];
           let android_url = this.createAndroidUrl(androidId, androidLanguageCode);
           let androidApp = new AppData("Android", androidId, androidLanguageCode);
+          androidApp.name = name
 
           // Androidはストアサイトから直接データを取得するので、遷移先のURLにそのまま使う
           androidApp.url = android_url;
@@ -254,7 +258,6 @@ export default class Review {
         }
 
         // アプリ情報を設定
-        appData.name = result.feed.entry[0]['im:name'];
         appData.url = result.feed.entry[0].link[0].$.href;
 
         // レビュー情報を設定
@@ -318,32 +321,25 @@ export default class Review {
   analyzeAndroidData($, appData) {
     var that = this;
     return new Promise((resolve, reject) => {
-      gplay.app({ 
+      gplay.reviews({
         appId: appData.appId,
-        lang: appData.langCountryCode
-       }).then(function (value) {
-        appData.name = value.title
+        sort: gplay.sort.NEWEST,
+        lang: appData.langCountryCode,
+        num: 5
+      }).then(function (value) {
+        let reviewProcess = []
+        for (let element of value) {
+          reviewProcess.push(that.getAndroidReview(appData, element));
+        }
 
-        gplay.reviews({
-          appId: appData.appId,
-          sort: gplay.sort.NEWEST,
-          lang: appData.langCountryCode,
-          num: 5
-        }).then(function (value) {
-          let reviewProcess = []
-          for (let element of value) {
-            reviewProcess.push(that.getAndroidReview(appData, element));
-          }
-
-          Promise.all(reviewProcess).then((data) => {
-            let returnData = [];
-            for (let i = 0; i < data.length; i++) {
-              if (data[i] !== null) {
-                returnData.push(data[i]);
-              }
+        Promise.all(reviewProcess).then((data) => {
+          let returnData = [];
+          for (let i = 0; i < data.length; i++) {
+            if (data[i] !== null) {
+              returnData.push(data[i]);
             }
-            resolve(returnData);
-          });
+          }
+          resolve(returnData);
         });
       });
     });
