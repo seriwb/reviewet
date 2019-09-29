@@ -2,6 +2,7 @@
 
 import client from 'cheerio-httpcli';
 import { parseString } from 'xml2js';
+import gplay from 'google-play-scraper'
 
 import AppData from './AppData';
 import Notification from './Notification';
@@ -287,6 +288,8 @@ export default class Review {
       // Android側の制御にあわせて日付を文字列で保持する
       param.updated = formatDate(new Date(entry.updated[0]), "YYYY/MM/DD hh:mm:ss");
       param.reviewId = entry.id[0];
+      param.kind = appData.kind
+      param.name = appData.name
       param.title = entry.title[0];
       param.message = entry.content[0]._;
       param.rating = entry['im:rating'];
@@ -314,27 +317,28 @@ export default class Review {
    */
   analyzeAndroidData($, appData) {
 
+    var that = this;
     return new Promise((resolve, reject) => {
-
-      // レビュー本文の後ろにくる「全文を表示」を削除
-      $('div.review-link').remove();
-
-      // アプリ情報を設定
-      appData.name = $('.id-app-title').text();
-
-      // レビュー情報を設定
-      let reviewProcess = [];
-      $('.single-review').each((i, element) => {
-        reviewProcess.push(this.getAndroidReview($, appData, element));
-      });
-      Promise.all(reviewProcess).then((data) => {
-        let returnData = [];
-        for (let i=0; i < data.length; i++) {
-          if (data[i] !== null) {
-            returnData.push(data[i]);
-          }
+      gplay.reviews({
+        appId: appData.appId,
+        sort: gplay.sort.RATING,
+        lang: "ja",
+        num: 2
+      }).then(function(value) {
+        let reviewProcess = []
+        for(let element of value) {
+          reviewProcess.push(that.getAndroidReview(appData, element));
         }
-        resolve(returnData);
+
+        Promise.all(reviewProcess).then((data) => {
+          let returnData = [];
+          for (let i=0; i < data.length; i++) {
+            if (data[i] !== null) {
+              returnData.push(data[i]);
+            }
+          }
+          resolve(returnData);
+        });
       });
     });
   }
@@ -344,37 +348,27 @@ export default class Review {
    * Androidのレビュー情報の解析処理。
    * 取得したレビュー情報が新規であればDBに保存し、通知用データとして返却する。
    *
-   * @param $
    * @param appData
    * @param element
    * @returns {Promise}
    */
-  getAndroidReview($, appData, element) {
-
+  getAndroidReview(appData, element) {
     return new Promise((resolve, reject) => {
       let param = [];
 
-      const reviewInfo = $(element).find('.review-info');
-      param.reviewId = $(element).find('.review-header').attr('data-reviewid');
-      param.updated = $(reviewInfo).find('.review-date').text();
+      param.reviewId = element.id
+      param.kind = appData.kind
 
-      // TODO:日本語以外にも対応する
-      const tempRating = $(reviewInfo).find('.review-info-star-rating .tiny-star').attr('aria-label');
-      const trimRatingLength = '5つ星のうち'.length;
-      param.rating = tempRating.substring(trimRatingLength, trimRatingLength + 1);
+      param.name = appData.name
+      param.title = appData.name;
+      param.titleLink = appData.name;
 
-      // アプリバージョンは取れないのでハイフンにする
+      param.message = element.text
+      param.rating = element.score
+      param.updated = formatDate(new Date(element.date), "YYYY/MM/DD hh:mm:ss"); 
       param.version = "-";
 
-      const reviewBody = $(element).find('.review-body.with-review-wrapper');
-      param.title = $(reviewBody).find('.review-title').text();
-
-      // レビュー本文の前からタイトルを削除し、前後の空白を削除
-      const tempMessage = $(reviewBody).text().replace(param.title, "");
-      param.message = tempMessage.trim();
-
       const reviewData = new ReviewData(param);
-
       // DBに登録を試みて、登録できれば新規レビューなので通知用レビューデータとして返却する
       this.insertReviewData(appData, reviewData).then((result) => {
         this.pushData(result, reviewData).then((data) => {

@@ -3,6 +3,7 @@
   "version": "1.4.0",
   "description": "Getting App Store and Google Play's review and notify to either slack or email.",
   "dependencies": {
+    "cheerio-httpcli": "^0.7.4",
     "config": "^3.0.0",
     "cron": "^1.5.0",
     "forever": "^0.15.3",
