@@ -316,28 +316,34 @@ export default class Review {
    * @returns {Promise}
    */
   analyzeAndroidData($, appData) {
-
     var that = this;
     return new Promise((resolve, reject) => {
-      gplay.reviews({
+      gplay.app({ 
         appId: appData.appId,
-        sort: gplay.sort.NEWEST,
-        lang: appData.langCountryCode,
-        num: 5
-      }).then(function(value) {
-        let reviewProcess = []
-        for(let element of value) {
-          reviewProcess.push(that.getAndroidReview(appData, element));
-        }
+        lang: appData.langCountryCode
+       }).then(function (value) {
+        appData.name = value.title
 
-        Promise.all(reviewProcess).then((data) => {
-          let returnData = [];
-          for (let i=0; i < data.length; i++) {
-            if (data[i] !== null) {
-              returnData.push(data[i]);
-            }
+        gplay.reviews({
+          appId: appData.appId,
+          sort: gplay.sort.NEWEST,
+          lang: appData.langCountryCode,
+          num: 5
+        }).then(function (value) {
+          let reviewProcess = []
+          for (let element of value) {
+            reviewProcess.push(that.getAndroidReview(appData, element));
           }
-          resolve(returnData);
+
+          Promise.all(reviewProcess).then((data) => {
+            let returnData = [];
+            for (let i = 0; i < data.length; i++) {
+              if (data[i] !== null) {
+                returnData.push(data[i]);
+              }
+            }
+            resolve(returnData);
+          });
         });
       });
     });
@@ -366,7 +372,7 @@ export default class Review {
       param.message = element.text
       param.rating = element.score
       param.updated = formatDate(new Date(element.date), "YYYY/MM/DD hh:mm:ss"); 
-      param.version = "-";
+      param.version = element.version;
 
       const reviewData = new ReviewData(param);
       // DBに登録を試みて、登録できれば新規レビューなので通知用レビューデータとして返却する
