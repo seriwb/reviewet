@@ -362,8 +362,8 @@ export default class Review {
       param.kind = appData.kind
 
       param.name = appData.name
-      param.title = appData.name;
-      param.titleLink = appData.name;
+      param.title = "";
+      param.titleLink = "";
 
       param.message = element.text
       param.rating = element.score

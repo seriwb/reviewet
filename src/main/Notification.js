@@ -40,7 +40,7 @@ export default class Notification {
             "color": "#529B2F",
             "fields": [
               {
-                "title": this.reviewDatas[i].title,
+                "title": this.reviewDatas[i].title ? this.reviewDatas[i].title : "レビュー",
                 "value": this.reviewDatas[i].message,
                 "short": false
               },
