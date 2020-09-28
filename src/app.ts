@@ -5,7 +5,7 @@ import config from 'config';
 import { CronJob } from 'cron';
 import http from 'http';
 
-import Review from './models/Review';
+import Review from './domains/Review';
 
 const CRON_TIME: string = config.get('cron.time');
 const TIME_ZONE: string = config.get('cron.timeZone');

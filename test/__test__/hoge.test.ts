@@ -9,3 +9,14 @@ describe('greet', (): void => {
 });
 
 
+
+// import { IosApp, AndroidApp } from 'application';
+import config from 'config';
+
+describe('config', (): void => {
+  test('hoge', (): void => {
+    const iosApps: any = config.get('app.iOS');
+
+    expect(iosApps).toMatchObject({ "countryCode": ["jp", "us"], "id": 490217893 });
+   });
+});

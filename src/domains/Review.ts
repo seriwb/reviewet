@@ -1,19 +1,20 @@
 import client from 'cheerio-httpcli';
 import { parseString } from 'xml2js';
 
-import AppData from './AppData';
-import Notification from './Notification';
-import ReviewData from './ReviewData';
+import AppData from '../models/AppData';
+import Notification from '../models/Notification';
+import ReviewData from '../models/ReviewData';
 import { formatDate } from '../utils/date';
 import { IConfig } from 'config';
 import { IosApp, AndroidApp } from 'application';
+import { changeToArray } from '../utils/array';
 
 /**
  * レビューの取得・解析処理を行う
  */
 export default class Review {
   outputs: number;
-  ignoreNotification: boolean;
+  ignoreNotification: boolean;  // 初回通知しないオプション（起動後に設定されたレビュー結果を通知しないためのオプション）
   config: IConfig;
   db: any; // TODO: 後で見直し
 
@@ -34,11 +35,6 @@ export default class Review {
     //     this.lang = "ja"
     //   }
     // }
-
-    // 情報取得元のURLを生成
-    this.ios_base_url = "http://itunes.apple.com/" + this.lang_sub + "/rss/customerreviews";
-    // 初回通知しないオプション（起動後に設定されたレビュー結果を通知しないためのオプション）
-    this.ignoreNotification = ignoreNotification;
 
     this.main = this.main.bind(this);
     this.ios = this.ios.bind(this);
@@ -62,12 +58,12 @@ export default class Review {
    * 設定されていないOSについては何もしない。
    */
   main() {
-    const iosApps: IosApp | IosApp[] = this.config.get('app.iOS');
+    const iosApps: IosApp[] = changeToArray(this.config.get('app.iOS'));
     if (iosApps) {
       this.ios(iosApps);
     }
 
-    let androidApps: AndroidApp | AndroidApp[] = this.config.get('app.android');
+    const androidApps: AndroidApp[] = changeToArray(this.config.get('app.android'));
     if (androidApps) {
       this.android(androidApps);
     }
@@ -76,19 +72,17 @@ export default class Review {
   /**
    * iOSのストアレビューを通知する
    *
-   * @param {array<Object>} iosApps アプリリスト
-   * @param {string} iosApp.id アプリID
-   * @param {array<string>} iosApp.countryCode 国コード
+   * @param {IosApp[]} iosApps レビューを取得するiOSアプリの情報
    */
-  ios(iosApps: IosApp | IosApp[]) {
-    if (iosApps !== null) {
+  ios(iosApps: IosApp[]) {
+    if (iosApps) {
       for (let i = 0; i < iosApps.length; i++) {
-        let iosId = iosApps[i].id;
-        let iosCountryCodes = iosApps[i].countryCode;
+        const iosId: string = iosApps[i].id;
+        const iosCountryCodes: string[] = changeToArray(iosApps[i].countryCode);
         for (let j = 0; j < iosCountryCodes.length; j++) {
-          let iosCountryCode = iosCountryCodes[j];
-          let ios_url = this.createIosUrl(iosId, iosCountryCode);
-          let iosApp = new AppData("iOS", iosId, iosCountryCode);
+          const iosCountryCode = iosCountryCodes[j];
+          const ios_url: string = this.createIosUrl(iosId, iosCountryCode);
+          const iosApp = new AppData("iOS", iosId, iosCountryCode);
 
           // iOSアプリのレビューを通知
           this.noticeAppReview(iosApp, ios_url, this.analyzeIosData);
@@ -100,19 +94,17 @@ export default class Review {
   /**
    * Androidのストアレビューを通知する
    *
-   * @param {array<object>} androidApps アプリリスト
-   * @param {string} androidApp.id アプリID
-   * @param {array<string>} androidApp.languageCode 言語コード
+   * @param {AndroidApp[]} androidApps レビューを取得するAndroidアプリの情報
    */
-  android(androidApps: AndroidApp | AndroidApp[]) {
-    if (androidApps !== null) {
+  android(androidApps: AndroidApp[]) {
+    if (androidApps) {
       for (let i = 0; i < androidApps.length; i++) {
-        let androidId = androidApps[i].id;
-        let androidLanguageCodes = androidApps[i].languageCode;
+        const androidId: string = androidApps[i].id;
+        const androidLanguageCodes: string[] = changeToArray(androidApps[i].languageCode);
         for (let j = 0; j < androidLanguageCodes.length; j++) {
-          let androidLanguageCode = androidLanguageCodes[j];
-          let android_url = this.createAndroidUrl(androidId, androidLanguageCode);
-          let androidApp = new AppData("Android", androidId, androidLanguageCode);
+          const androidLanguageCode = androidLanguageCodes[j];
+          const android_url: string = this.createAndroidUrl(androidId, androidLanguageCode);
+          const androidApp = new AppData("Android", androidId, androidLanguageCode);
 
           // Androidはストアサイトから直接データを取得するので、遷移先のURLにそのまま使う
           androidApp.url = android_url;
@@ -169,12 +161,12 @@ export default class Review {
    * @param {string} countryCode 取得対象アプリのAppStore国コード
    * @param {number} page ページインデックス
    */
-  createIosUrl(appId, countryCode, page) {
-    let url = "http://itunes.apple.com/" + countryCode + "/rss/customerreviews";
-    if (page !== null && page > 0) {
-      url += "/page=" + page + "/id=" + appId + "/sortBy=mostRecent/xml";
+  createIosUrl(appId: string, countryCode: string, page: number = 0) {
+    let url = `http://itunes.apple.com/${countryCode}/rss/customerreviews`;
+    if (page > 0) {
+      url += `/page=${page}/id=${appId}/sortBy=mostRecent/xml`;
     } else {
-      url += "/id=" + appId + "/sortBy=mostRecent/xml";
+      url += `/id=${appId}/sortBy=mostRecent/xml`;
     }
 
     return url;
@@ -185,8 +177,8 @@ export default class Review {
    * @param {string} appId 取得対象アプリのGooglePlay ID
    * @param {string} languageCode 取得対象アプリのGooglePlay言語コード
    */
-  createAndroidUrl(appId, languageCode) {
-    return "https://play.google.com/store/apps/details?id=" + appId + "&hl=" + languageCode;
+  createAndroidUrl(appId: string, languageCode: string) {
+    return `https://play.google.com/store/apps/details?id=${appId}&hl=${languageCode}`;
   }
 
   /**
