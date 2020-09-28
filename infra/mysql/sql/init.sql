@@ -1,0 +1,7 @@
+CREATE DATABASE reviewet CHARACTER SET utf8mb4;
+CREATE USER 'admin'@'localhost' IDENTIFIED BY 'admin';
+CREATE USER 'admin'@'127.0.0.1' IDENTIFIED BY 'admin';
+GRANT ALL ON *.* TO 'admin'@'%' WITH GRANT OPTION;
+GRANT ALL ON *.* TO 'admin'@'localhost' WITH GRANT OPTION;
+GRANT ALL ON *.* TO 'admin'@'127.0.0.1' WITH GRANT OPTION;
+FLUSH PRIVILEGES;

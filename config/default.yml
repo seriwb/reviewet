@@ -1,17 +1,17 @@
 ---
-appId:
-  iOS: 490217893
-  android: com.google.android.googlequicksearchbox
-acceptLanguage: ja
-# app:
-#   iOS:
-#     id: 490217893
-#     countryCode:
-#       - jp
-#       - us
-#   android:
-#     id: com.google.android.googlequicksearchbox
-#     languageCode: ja
+# appId:
+#   iOS: 490217893
+#   android: com.google.android.googlequicksearchbox
+# acceptLanguage: ja
+app:
+  iOS:
+    id: 490217893
+    countryCode:
+      - jp
+      - us
+  android:
+    id: com.google.android.googlequicksearchbox
+    languageCode: ja
 
 cron:
   time: '0 * * * *'
