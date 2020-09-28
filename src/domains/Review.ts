@@ -123,11 +123,10 @@ export default class Review {
    * @param url
    * @param appfunc OS別のレビュー取得処理
    */
-  noticeAppReview(appData, url, appfunc) {
-    let outputs = this.outputs;
+  noticeAppReview(appData: AppData, url: string, appfunc: ($: any, appData: AppData) => Promise<ReviewData[]>) {
     const config = this.config;
-    const useSlack = config.slack.use;
-    const useEmail = config.email.use;
+    const useSlack = config.get('slack.use');
+    const useEmail = config.get('email.use');
 
     // アプリのレビューデータを取得
     let param = {};
@@ -137,12 +136,12 @@ export default class Review {
         return;
       }
 
-      appfunc($, appData).then((reviewData) => {
+      appfunc($, appData).then((reviewDatas) => {
 
-        const notification = new Notification(appData, reviewData, config);
+        const notification = new Notification(appData, reviewDatas, config);
         // 表示件数制御
-        if (outputs >= 0 && reviewData !== null && reviewData.length > outputs) {
-          reviewData.length = outputs;
+        if (this.outputs >= 0 && reviewDatas !== null && reviewDatas.length > this.outputs) {
+          reviewDatas.length = this.outputs;
         }
         if (useSlack) {
           notification.slack();
@@ -184,13 +183,13 @@ export default class Review {
   /**
    * iOSのレビュー情報を解析して、整形したレビューデータを返却する。
    */
-  analyzeIosData($, appData) {
+  analyzeIosData($: any, appData: AppData): Promise<ReviewData[]> {
 
     return new Promise((resolve, reject) => {
       // RSSの内容を解析してレビューデータを作成
       const reviewDataXml = $.xml();
-      let reviewDatas = [];
-      parseString(reviewDataXml, (err, result) => {
+      let reviewDatas: ReviewData[] = [];
+      parseString(reviewDataXml, (err, result) => { // TODO: xml関連の型を調べる
 
         // アプリレビューがない場合は終了
         if (!result.feed.entry) {
@@ -203,13 +202,13 @@ export default class Review {
         appData.url = result.feed.entry[0].link[0].$.href;
 
         // レビュー情報を設定
-        let reviewProcess = [];
+        let reviewProcess: Promise<ReviewData>[] = [];
         for (let i = 1; i < result.feed.entry.length; i++) {
           const entry = result.feed.entry[i];
           reviewProcess.push(this.getIosReview(appData, entry));
         }
         Promise.all(reviewProcess).then((datas) => {
-          let returnData = [];
+          let returnData: ReviewData[] = [];
           for (let i = 0; i < datas.length; i++) {
             if (datas[i] !== null) {
               returnData.push(datas[i]);
@@ -225,25 +224,25 @@ export default class Review {
    * iOSのレビュー情報の解析処理。
    * 取得したレビュー情報が新規であればDBに保存し、通知用データとして返却する。
    */
-  getIosReview(appData, entry) {
+  getIosReview(appData: AppData, entry: any): Promise<ReviewData> {
 
     return new Promise((resolve, reject) => {
-      let param = []; // TODO: Type作る
-
+      const reviewId = entry.id[0];
+      const title = entry.title[0];
+      const message = entry.content[0]._;
+      const rating = entry['im:rating'];
+      const version = entry['im:version'] + ''; // 文字列に変換
       // Android側の制御にあわせて日付を文字列で保持する
-      param.updated = formatDate(new Date(entry.updated[0]), "YYYY/MM/DD hh:mm:ss");
-      param.reviewId = entry.id[0];
-      param.title = entry.title[0];
-      param.message = entry.content[0]._;
-      param.rating = entry['im:rating'];
-      param.version = entry['im:version'] + ''; // 文字列に変換
+      const updated = formatDate(new Date(entry.updated[0]), "YYYY/MM/DD hh:mm:ss");
 
-      let reviewData = new ReviewData(param);
+      let reviewData = new ReviewData(reviewId,title, "", message, version, rating, updated);
 
       // DBに登録を試みて、登録できれば新規レビューなので通知用レビューデータとして返却する
       this.insertReviewData(appData, reviewData).then((result) => {
         this.pushData(result, reviewData).then((data) => {
-          resolve(data)
+          if (data) {
+            resolve(data);
+          }
         });
       });
     });
@@ -258,7 +257,7 @@ export default class Review {
    * @param appData
    * @returns {Promise}
    */
-  analyzeAndroidData($, appData) {
+  analyzeAndroidData($: any, appData: AppData): Promise<ReviewData[]> {
 
     return new Promise((resolve, reject) => {
 
@@ -269,8 +268,8 @@ export default class Review {
       appData.name = $('.id-app-title').text();
 
       // レビュー情報を設定
-      let reviewProcess = [];
-      $('.single-review').each((i, element) => {
+      let reviewProcess: Promise<ReviewData>[] = [];
+      $('.single-review').each((i: number, element: any) => {
         reviewProcess.push(this.getAndroidReview($, appData, element));
       });
       Promise.all(reviewProcess).then((data) => {
@@ -295,36 +294,36 @@ export default class Review {
    * @param element
    * @returns {Promise}
    */
-  getAndroidReview($, appData, element) {
+  getAndroidReview($: any, appData: AppData, element: any): Promise<ReviewData> {
 
     return new Promise((resolve, reject) => {
-      let param = [];
-
       const reviewInfo = $(element).find('.review-info');
-      param.reviewId = $(element).find('.review-header').attr('data-reviewid');
-      param.updated = $(reviewInfo).find('.review-date').text();
+      const reviewId = $(element).find('.review-header').attr('data-reviewid');
+      const updated = $(reviewInfo).find('.review-date').text();
 
       // TODO:日本語以外にも対応する
       const tempRating = $(reviewInfo).find('.review-info-star-rating .tiny-star').attr('aria-label');
       const trimRatingLength = '5つ星のうち'.length;
-      param.rating = tempRating.substring(trimRatingLength, trimRatingLength + 1);
+      const rating = tempRating.substring(trimRatingLength, trimRatingLength + 1);
 
       // アプリバージョンは取れないのでハイフンにする
-      param.version = "-";
+      const version = "-";
 
       const reviewBody = $(element).find('.review-body.with-review-wrapper');
-      param.title = $(reviewBody).find('.review-title').text();
+      const title = $(reviewBody).find('.review-title').text();
 
       // レビュー本文の前からタイトルを削除し、前後の空白を削除
-      const tempMessage = $(reviewBody).text().replace(param.title, "");
-      param.message = tempMessage.trim();
+      const tempMessage = $(reviewBody).text().replace(title, "");
+      const message = tempMessage.trim();
 
-      const reviewData = new ReviewData(param);
+      const reviewData = new ReviewData(reviewId, title, "", message, version, rating, updated);
 
       // DBに登録を試みて、登録できれば新規レビューなので通知用レビューデータとして返却する
       this.insertReviewData(appData, reviewData).then((result) => {
         this.pushData(result, reviewData).then((data) => {
-          resolve(data)
+          if (data) {
+            resolve(data);
+          }
         });
       });
     });
@@ -339,7 +338,7 @@ export default class Review {
    * @param reviewData
    * @returns {Promise}
    */
-  insertReviewData(appData, reviewData) {
+  insertReviewData(appData: AppData, reviewData: ReviewData): Promise<boolean> {
 
     return new Promise((resolve, reject) => {
       this.selectRecord(reviewData, appData.kind).then((result) => {
@@ -375,7 +374,7 @@ export default class Review {
    * @param reviewData
    * @returns {Promise}
    */
-  pushData(result, reviewData) {
+  pushData(result: boolean, reviewData: ReviewData): Promise<ReviewData | null> {
     return new Promise((resolve, reject) => {
       // DB登録ができて通知可能な場合に、通知対象とする
       if (result && !this.ignoreNotification) {
@@ -394,12 +393,12 @@ export default class Review {
    * @param condition チェック対象のレビューデータ
    * @param kind アプリのOS種別
    */
-  selectRecord(condition, kind) {
+  selectRecord(reviewData: ReviewData, kind: string): Promise<any> { // TODO: sqliteからの書き直しが必要
     return new Promise((resolve, reject) => {
       this.db.serialize(() => {
         this.db.get('SELECT count(*) as cnt FROM review WHERE id = $id AND kind = $kind',
-          { $id: condition.reviewId, $kind: kind },
-          (err, res) => {
+          { $id: reviewData.reviewId, $kind: kind },
+          (err: any, res: any) => {
             if (err) {
               return reject(err);
             }

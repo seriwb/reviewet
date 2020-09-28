@@ -5,21 +5,21 @@
  * @constructor
  */
 export default class ReviewData {
-  updated: string;
   reviewId: string;
   title: string;
   titleLink: string;
   message: string;
   version: string;
   rating: string;
+  updated: string;
 
-  constructor(param: { [s: string]: string }) {
-    this.updated = param.updated;
-    this.reviewId = param.reviewId;
-    this.title = param.title;
-    this.titleLink = param.titleLink;
-    this.message = param.message;
-    this.version = param.version;
-    this.rating = param.rating;
+  constructor(reviewId: string, title: string, titleLink: string, message: string, version: string, rating: string, updated: string) {
+    this.reviewId = reviewId;
+    this.title = title;
+    this.titleLink = titleLink;
+    this.message = message;
+    this.version = version;
+    this.rating = rating;
+    this.updated = updated;
   }
 };
