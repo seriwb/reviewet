@@ -1,10 +1,9 @@
-import nodemailer from 'nodemailer';
 import fs from 'fs';
-import { IConfig } from 'config';
 
 import { formatDate } from '../utils/date';
 import AppData from './AppData';
 import ReviewData from './ReviewData';
+import { emailClient } from '../lib/email';
 import { slackClient } from '../lib/slack';
 
 /**
@@ -13,12 +12,10 @@ import { slackClient } from '../lib/slack';
 export default class Notification {
   appData: AppData;
   reviewDatas: ReviewData[];
-  config: IConfig;
 
-  constructor(appData: AppData, reviewDatas: ReviewData[], config: IConfig) {
+  constructor(appData: AppData, reviewDatas: ReviewData[],) {
     this.appData = appData;
     this.reviewDatas = reviewDatas;
-    this.config = config;
   }
 
   slack() {
@@ -102,36 +99,15 @@ export default class Notification {
         .replace('{{ review.version }}', this.reviewDatas[i].version);
     }
 
-    // SMTPコネクションプールを作成
-    let smtpConfig: { [s: string]: string | { [s: string]: string} }; // TODO:型がexportされていないので、自前で定義すること
-    if (this.config.get('email.smtp.auth.user') !== null) {
-      smtpConfig = {
-        host: this.config.get('email.smtp.host'),
-        port: this.config.get('email.smtp.port'),
-        secure: this.config.get('email.smtp.ssl'),
-        auth: {
-          user: this.config.get('email.smtp.auth.user'),
-          pass: this.config.get('email.smtp.auth.pass')
-        }
-      };
-    } else {
-      smtpConfig = {
-        host: this.config.get('email.smtp.host'),
-        port: this.config.get('email.smtp.port'),
-        secure: this.config.get('email.smtp.ssl')
-      };
-    }
-    const transporter = nodemailer.createTransport(smtpConfig);
-
     // unicode文字でメールを送信
     const mailOptions: { [s: string]: string } = {  // TODO: これも型が使えないので自分で定義する
-      from: "Reviewet <" + this.config.get('email.from') + ">",
-      to: this.config.get('email.to'),
-      subject: "[Reviewet][" + this.appData.kind + "]" + this.appData.name + "の新着レビュー",
+      from: `Reviewet <${process.env.EMAIL_FROM!}>`,
+      to: process.env.EMAIL_TO!,
+      subject: `[Reviewet][${this.appData.kind}]${this.appData.name}の新着レビュー`,
       html: mailBody
     };
-    // 先ほど宣言したトランスポートオブジェクトでメールを送信
-    transporter.sendMail(mailOptions, function (error, info) {
+    // メール送信
+    emailClient.sendMail(mailOptions, function (error, info) {
       if (error) {
         console.log(error);
       } else {

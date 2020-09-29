@@ -26,12 +26,3 @@ slack:
 
 email:
   use: false
-  smtp:
-    host: smtp.gmail.com
-    port: 465
-    ssl: true
-    auth:
-      user: 'username@gmail.com'
-      pass: 'userpassword'
-  from: 'sendFrom@mail.com'
-  to: 'sendTo@mail.com'

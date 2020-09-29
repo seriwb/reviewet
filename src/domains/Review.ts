@@ -128,9 +128,6 @@ export default class Review {
    * @param appfunc OS別のレビュー取得処理
    */
   noticeAppReview(appData: AppData, url: string, appfunc: ($: any, appData: AppData) => Promise<ReviewData[]>) {
-    const config = this.config;
-    const useSlack = config.get('slack.use');
-    const useEmail = config.get('email.use');
 
     // アプリのレビューデータを取得
     let param = {};
@@ -142,16 +139,16 @@ export default class Review {
 
       appfunc($, appData).then((reviewDatas) => {
 
-        const notification = new Notification(appData, reviewDatas, config);
+        const notification = new Notification(appData, reviewDatas);
         // 表示件数制御
         if (this.outputs >= 0 && reviewDatas !== null && reviewDatas.length > this.outputs) {
           reviewDatas.length = this.outputs;
         }
-        if (useSlack) {
+        if (this.useSlack) {
           notification.slack();
         }
 
-        if (useEmail) {
+        if (this.useEmail) {
           notification.email();
         }
       });
