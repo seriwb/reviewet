@@ -1,7 +1,7 @@
 import nodemailer, { Transporter } from 'nodemailer';
 
 // SMTPコネクションプールを作成
-let smtpConfig: { [s: string]: string | { [s: string]: string } }; // TODO:型がexportされていないので、自前で定義すること
+let smtpConfig: { [s: string]: string | { [s: string]: string } };
 if (process.env.EMAIL_SMTP_USER !== null) {
   smtpConfig = {
     host: process.env.EMAIL_SMTP_HOST!,

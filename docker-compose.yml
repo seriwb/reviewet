@@ -8,6 +8,8 @@ services:
     command: bash
     tty: true
     working_dir: "/reviewet"
+    env_file:
+      - ./.env
     volumes:
       - .:/reviewet:cached
     networks:
@@ -18,6 +20,7 @@ services:
     container_name: reviewet_db
     environment:
       MYSQL_ROOT_PASSWORD: "root"
+      MYSQL_DATABASE: "reviewet"
       MYSQL_USER: "admin"
       MYSQL_PASSWORD: "admin"
     volumes:

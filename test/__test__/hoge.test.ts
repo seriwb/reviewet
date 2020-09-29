@@ -20,3 +20,14 @@ describe('config', (): void => {
     expect(iosApps).toMatchObject({ "countryCode": ["jp", "us"], "id": 490217893 });
    });
 });
+
+import Review from '../../src/repositories/Review';
+import ReviewData from '../../src/models/ReviewData';
+
+describe('mysql', (): void => {
+  test('selectRecord', async () => {
+    const review = new Review(false);
+    const reviewData = new ReviewData("reviewId", "title", "", "message", "version", "1", "updated");
+    expect(await review.selectRecord(reviewData, "kind")).toBe(0);
+  })
+});

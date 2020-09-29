@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
-    "target": "es5",
-    "module": "es2015",
+    "target": "es2017",
+    "module": "esnext",
     "lib": [
-      "es2019",
+      "esnext",
       "dom"
     ],
     "allowJs": true,                       /* Allow javascript files to be compiled. */

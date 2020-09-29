@@ -1,10 +1,9 @@
-import fs from 'fs';
-import client from 'cheerio-httpcli';
-
-import { formatDate } from '../utils/date';
 import AppData from '../models/AppData';
 import ReviewData from '../models/ReviewData';
+import client from 'cheerio-httpcli';
 import { emailClient } from '../lib/email';
+import { formatDate } from '../utils/date';
+import fs from 'fs';
 import { slackClient } from '../lib/slack';
 
 /**

@@ -1,16 +1,14 @@
-
 import { AndroidApp } from 'application';
-import { changeToArray } from '../utils/array';
 import AppData from '../models/AppData';
-import { noticeAppReview } from './Notification';
-import ReviewData from '../models/ReviewData';
 import Review from '../repositories/Review';
+import ReviewData from '../models/ReviewData';
+import { changeToArray } from '../utils/array';
+import { noticeAppReview } from './Notification';
 
 interface Props {
   androidApps: AndroidApp[];
   outputs: number;
   ignoreNotification: boolean;
-  db: any;
   useSlack: boolean;
   useEmail: boolean;
 }
@@ -21,7 +19,7 @@ interface Props {
  * @param {AndroidApp[]} androidApps レビューを取得するAndroidアプリの情報
  */
 export const androidReview = (props: Props) => {
-  const android = new Android(props.ignoreNotification, props.db);
+  const android = new Android(props.ignoreNotification);
 
   for (let i = 0; i < props.androidApps.length; i++) {
     const androidId: string = props.androidApps[i].id;
@@ -43,8 +41,8 @@ export const androidReview = (props: Props) => {
 class Android {
   review: Review;
 
-  constructor(ignoreNotification: boolean, db: any) {
-    this.review = new Review(ignoreNotification, db);
+  constructor(ignoreNotification: boolean) {
+    this.review = new Review(ignoreNotification);
 
     this.getUrl = this.getUrl.bind(this);
     this.analyzeData = this.analyzeData.bind(this);

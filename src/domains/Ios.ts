@@ -1,18 +1,16 @@
-
-import { IosApp } from 'application';
-import { changeToArray } from '../utils/array';
 import AppData from '../models/AppData';
-import { noticeAppReview } from './Notification';
-import ReviewData from '../models/ReviewData';
+import { IosApp } from 'application';
 import Review from '../repositories/Review';
-import { parseString } from 'xml2js';
+import ReviewData from '../models/ReviewData';
+import { changeToArray } from '../utils/array';
 import { formatDate } from '../utils/date';
+import { noticeAppReview } from './Notification';
+import { parseString } from 'xml2js';
 
 interface Props {
   iosApps: IosApp[];
   outputs: number;
   ignoreNotification: boolean;
-  db: any;
   useSlack: boolean;
   useEmail: boolean;
 }
@@ -24,7 +22,7 @@ interface Props {
  * @param {IosApp[]} iosApps レビューを取得するiOSアプリの情報
  */
 export const iosReview = (props: Props) => {
-  const ios = new Ios(props.ignoreNotification, props.db);
+  const ios = new Ios(props.ignoreNotification);
 
   for (let i = 0; i < props.iosApps.length; i++) {
     const iosId: string = props.iosApps[i].id;
@@ -43,8 +41,8 @@ export const iosReview = (props: Props) => {
 class Ios {
   review: Review;
 
-  constructor(ignoreNotification: boolean, db: any) {
-    this.review = new Review(ignoreNotification, db);
+  constructor(ignoreNotification: boolean) {
+    this.review = new Review(ignoreNotification);
 
     this.getUrl = this.getUrl.bind(this);
     this.analyzeData = this.analyzeData.bind(this);
