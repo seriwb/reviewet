@@ -1,10 +1,14 @@
 import path from 'path';
 import { CleanWebpackPlugin } from 'clean-webpack-plugin';
+import nodeExternals from 'webpack-node-externals';
 
 const src = path.resolve(__dirname, 'src');
 const dist = path.resolve(__dirname, 'dist');
 
 export default {
+  target: 'node',
+  externals: [nodeExternals()],
+
   entry: {
     app: src + '/app.ts'
   },

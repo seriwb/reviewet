@@ -6,12 +6,9 @@
     "cheerio-httpcli": "^0.8.1",
     "config": "^3.3.2",
     "cron": "^1.8.2",
-    "forever": "^3.0.2",
-    "fs": "0.0.2",
     "js-yaml": "^3.14.0",
     "nodemailer": "^6.4.11",
     "slack-node": "^0.2.0",
-    "sqlite3": "^5.0.0",
     "xml2js": "^0.4.23"
   },
   "main": "dist/main/app.js",
@@ -34,13 +31,15 @@
     "webpack": "^4.44.2",
     "webpack-cli": "^3.3.12",
     "webpack-livereload-plugin": "^2.3.0",
-    "webpack-merge": "^5.1.4"
+    "webpack-merge": "^5.1.4",
+    "webpack-node-externals": "^2.5.2"
   },
   "scripts": {
     "build": "webpack --config webpack.dev.js",
     "start": "webpack --config webpack.dev.js --watch",
     "start-not-use": "webpack-dev-server --config webpack.dev.js",
     "build-prd": "webpack --config webpack.prd.js",
+    "start-prd": "node dist/app.js",
     "clean": "rm -rf dist",
     "test": "jest --watch",
     "test:ci": "jest --ci"
