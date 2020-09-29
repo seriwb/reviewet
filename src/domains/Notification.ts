@@ -1,8 +1,9 @@
 import fs from 'fs';
+import client from 'cheerio-httpcli';
 
 import { formatDate } from '../utils/date';
-import AppData from './AppData';
-import ReviewData from './ReviewData';
+import AppData from '../models/AppData';
+import ReviewData from '../models/ReviewData';
 import { emailClient } from '../lib/email';
 import { slackClient } from '../lib/slack';
 
@@ -116,3 +117,39 @@ export default class Notification {
     });
   }
 }
+
+
+/**
+ * 対象OSのアプリレビューを取得して通知する
+ *
+ * @param appfunc OS別のレビュー取得処理
+ */
+export const noticeAppReview = (
+  appData: AppData, url: string, outputs: number, useSlack: boolean, useEmail: boolean,
+  appfunc: ($: any, appData: AppData) => Promise<ReviewData[]>
+) => {
+
+  // アプリのレビューデータを取得
+  let param = {};
+  client.fetch(url, param, (err, $, res) => {
+    if (err) {
+      console.log(formatDate(new Date(), "YYYY/MM/DD hh:mm:ss") + " Error:", err);
+      return;
+    }
+
+    appfunc($, appData).then((reviewDatas) => {
+      const notification = new Notification(appData, reviewDatas);
+      // 表示件数制御
+      if (outputs >= 0 && reviewDatas !== null && reviewDatas.length > outputs) {
+        reviewDatas.length = outputs;
+      }
+      if (useSlack) {
+        notification.slack();
+      }
+
+      if (useEmail) {
+        notification.email();
+      }
+    });
+  });
+};

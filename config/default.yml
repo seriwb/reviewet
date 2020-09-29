@@ -1,8 +1,4 @@
 ---
-# appId:
-#   iOS: 490217893
-#   android: com.google.android.googlequicksearchbox
-# acceptLanguage: ja
 app:
   iOS:
     id: 490217893
