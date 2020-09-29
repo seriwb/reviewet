@@ -23,8 +23,6 @@ maxConnections: 1
 
 slack:
   use: true
-  webhook: https://xxxxxxxxxxxxxxxxxxx
-  channel: channelname
 
 email:
   use: false

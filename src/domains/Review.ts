@@ -17,12 +17,16 @@ export default class Review {
   ignoreNotification: boolean;  // 初回通知しないオプション（起動後に設定されたレビュー結果を通知しないためのオプション）
   config: IConfig;
   db: any; // TODO: 後で見直し
+  useSlack: boolean;
+  useEmail: boolean;
 
-  constructor(outputs: number, ignoreNotification: boolean, config: IConfig, db: any) {
+  constructor(outputs: number, ignoreNotification: boolean, config: IConfig, db: any, useSlack: boolean, useEmail: boolean) {
     this.outputs = outputs;
     this.ignoreNotification = ignoreNotification;
     this.config = config;
     this.db = db;
+    this.useSlack = useSlack;
+    this.useEmail = useEmail;
 
     // // 下位互換性
     // if (this.config.get('appId')) {

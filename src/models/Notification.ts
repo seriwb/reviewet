@@ -1,4 +1,3 @@
-import Slack from 'slack-node';
 import nodemailer from 'nodemailer';
 import fs from 'fs';
 import { IConfig } from 'config';
@@ -6,6 +5,7 @@ import { IConfig } from 'config';
 import { formatDate } from '../utils/date';
 import AppData from './AppData';
 import ReviewData from './ReviewData';
+import { slackClient } from '../lib/slack';
 
 /**
  * 通知処理を行う
@@ -26,15 +26,11 @@ export default class Notification {
       return;
     }
 
-    const webhookUri: string = this.config.get('slack.webhook');
-    const channel: string = this.config.get('slack.channel');
-
-    let slack = new Slack();
-    slack.setWebhook(webhookUri);
+    const channel: string = process.env.SLACK_CHANNEL!; // TODO:ないとエラーにする
 
     for (let i = 0; i < this.reviewDatas.length; i++) {
 
-      slack.webhook({
+      slackClient.webhook({
         channel: "#" + channel,
         username: "reviewet",
         attachments: [

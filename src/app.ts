@@ -9,6 +9,8 @@ import Review from './domains/Review';
 
 const CRON_TIME: string = config.get('cron.time');
 const TIME_ZONE: string = config.get('cron.timeZone');
+const useSlack: boolean = config.get('slack.use');
+const useEmail: boolean = config.get('email.use');
 
 
 // 通知しない設定
@@ -55,7 +57,7 @@ try {
     // }
 
     try {
-      let app = new Review(outputs, ignoreNotification, config, db);
+      let app = new Review(outputs, ignoreNotification, config, db, useSlack, useEmail);
       app.main();
     } catch (e) {
       console.log("application error: " + e);
