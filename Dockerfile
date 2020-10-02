@@ -8,6 +8,6 @@ WORKDIR /reviewet
 
 COPY . .
 
-# RUN yarn && yarn run build
+RUN yarn && yarn run build
 
 CMD ["yarn", "start"]

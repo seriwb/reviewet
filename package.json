@@ -36,11 +36,10 @@
     "webpack-node-externals": "^2.5.2"
   },
   "scripts": {
-    "build": "webpack --config webpack.dev.js",
-    "start": "webpack --config webpack.dev.js --watch",
-    "start-not-use": "webpack-dev-server --config webpack.dev.js",
-    "build-prd": "webpack --config webpack.prd.js",
-    "start-prd": "node dist/app.js",
+    "build-dev": "webpack --config webpack.dev.js",
+    "start-dev": "wnode dist/app.js",
+    "build": "webpack --config webpack.prd.js",
+    "start": "node dist/app.js",
     "clean": "rm -rf dist",
     "test": "jest --watch",
     "test:ci": "jest --ci"
