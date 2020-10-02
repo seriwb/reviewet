@@ -9,6 +9,7 @@
     "js-yaml": "^3.14.0",
     "mysql2": "^2.2.5",
     "nodemailer": "^6.4.11",
+    "puppeteer": "^5.3.1",
     "slack-node": "^0.2.0",
     "xml2js": "^0.4.23"
   },

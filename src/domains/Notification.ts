@@ -1,10 +1,63 @@
 import AppData from '../models/AppData';
 import ReviewData from '../models/ReviewData';
-import client from 'cheerio-httpcli';
+import cheerioClient from 'cheerio-httpcli';
 import { emailClient } from '../lib/email';
 import { formatDate } from '../utils/date';
 import fs from 'fs';
 import { slackClient } from '../lib/slack';
+
+// TODO: アプリの情報取得処理がNotificationにあるのがおかしい
+/**
+ * 対象OSのアプリレビューを取得して通知する
+ */
+export const notificateAppReview = (
+  appData: AppData, outputs: number, useSlack: boolean, useEmail: boolean, reviewDatas: ReviewData[]
+) => {
+  const notification = new Notification(appData, reviewDatas);
+
+  // 表示件数制御
+  if (outputs >= 0 && reviewDatas !== null && reviewDatas.length > outputs) {
+    reviewDatas.length = outputs;
+  }
+  if (useSlack) {
+    notification.slack();
+  }
+
+  if (useEmail) {
+    notification.email();
+  }
+};
+
+
+export const noticeAppReview = (
+  appData: AppData, url: string, outputs: number, useSlack: boolean, useEmail: boolean,
+  appfunc: ($: cheerioClient.CheerioStaticEx, appData: AppData) => Promise<ReviewData[]>
+) => {
+
+  // アプリのレビューデータを取得
+  const param = {};
+  cheerioClient.fetch(url, param, (err, $, res, body) => {
+    if (err) {
+      console.log(formatDate(new Date(), "YYYY/MM/DD hh:mm:ss") + " Error:", err);
+      return;
+    }
+
+    appfunc($, appData).then((reviewDatas) => {
+      const notification = new Notification(appData, reviewDatas);
+      // 表示件数制御
+      if (outputs >= 0 && reviewDatas !== null && reviewDatas.length > outputs) {
+        reviewDatas.length = outputs;
+      }
+      if (useSlack) {
+        notification.slack();
+      }
+
+      if (useEmail) {
+        notification.email();
+      }
+    });
+  });
+};
 
 /**
  * 通知処理を行う
@@ -116,39 +169,3 @@ export default class Notification {
     });
   }
 }
-
-
-/**
- * 対象OSのアプリレビューを取得して通知する
- *
- * @param appfunc OS別のレビュー取得処理
- */
-export const noticeAppReview = (
-  appData: AppData, url: string, outputs: number, useSlack: boolean, useEmail: boolean,
-  appfunc: ($: any, appData: AppData) => Promise<ReviewData[]>
-) => {
-
-  // アプリのレビューデータを取得
-  let param = {};
-  client.fetch(url, param, (err, $, res) => {
-    if (err) {
-      console.log(formatDate(new Date(), "YYYY/MM/DD hh:mm:ss") + " Error:", err);
-      return;
-    }
-
-    appfunc($, appData).then((reviewDatas) => {
-      const notification = new Notification(appData, reviewDatas);
-      // 表示件数制御
-      if (outputs >= 0 && reviewDatas !== null && reviewDatas.length > outputs) {
-        reviewDatas.length = outputs;
-      }
-      if (useSlack) {
-        notification.slack();
-      }
-
-      if (useEmail) {
-        notification.email();
-      }
-    });
-  });
-};

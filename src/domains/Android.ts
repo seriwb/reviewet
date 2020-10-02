@@ -5,6 +5,8 @@ import ReviewData from '../models/ReviewData';
 import { changeToArray } from '../utils/array';
 import { noticeAppReview } from './Notification';
 
+export const KIND = "Android";
+
 interface Props {
   androidApps: AndroidApp[];
   outputs: number;
@@ -26,8 +28,8 @@ export const androidReview = (props: Props) => {
     const androidLanguageCodes: string[] = changeToArray(props.androidApps[i].languageCode);
     for (let j = 0; j < androidLanguageCodes.length; j++) {
       const androidLanguageCode = androidLanguageCodes[j];
-      const android_url: string = android.getUrl(androidId, androidLanguageCode);
-      const androidApp = new AppData("Android", androidId, androidLanguageCode);
+      const android_url: string = android.getReviewDataUrl(androidId, androidLanguageCode);
+      const androidApp = new AppData(KIND, androidId, androidLanguageCode);
 
       // Androidはストアサイトから直接データを取得するので、遷移先のURLにそのまま使う
       androidApp.url = android_url;
@@ -44,7 +46,7 @@ class Android {
   constructor(ignoreNotification: boolean) {
     this.review = new Review(ignoreNotification);
 
-    this.getUrl = this.getUrl.bind(this);
+    this.getReviewDataUrl = this.getReviewDataUrl.bind(this);
     this.analyzeData = this.analyzeData.bind(this);
     this.getReview = this.getReview.bind(this);
   }
@@ -53,7 +55,7 @@ class Android {
    * @param {string} appId 取得対象アプリのGooglePlay ID
    * @param {string} languageCode 取得対象アプリのGooglePlay言語コード
    */
-  getUrl(appId: string, languageCode: string) {
+  getReviewDataUrl(appId: string, languageCode: string) {
     return `https://play.google.com/store/apps/details?id=${appId}&hl=${languageCode}`;
   }
 
