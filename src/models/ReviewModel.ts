@@ -4,22 +4,22 @@
  * @param param
  * @constructor
  */
-export default class ReviewData {
+export default class ReviewModel {
   reviewId: string;
   title: string;
   titleLink: string;
   message: string;
   version: string;
   rating: string;
-  updated: string;
+  postedAt: string;
 
-  constructor(reviewId: string, title: string, titleLink: string, message: string, version: string, rating: string, updated: string) {
+  constructor(reviewId: string, title: string, titleLink: string, message: string, version: string, rating: string, postedAt: string) {
     this.reviewId = reviewId;
     this.title = title;
     this.titleLink = titleLink;
     this.message = message;
     this.version = version;
     this.rating = rating;
-    this.updated = updated;
+    this.postedAt = postedAt;
   }
 };

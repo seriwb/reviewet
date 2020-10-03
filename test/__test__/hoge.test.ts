@@ -21,13 +21,13 @@ describe('config', (): void => {
    });
 });
 
-import Review from '../../src/repositories/Review';
-import ReviewData from '../../src/models/ReviewData';
+import ReviewRepository from '../../src/repositories/ReviewRepository';
+import ReviewModel from '../../src/models/ReviewModel';
 
 describe('mysql', (): void => {
   test('selectRecord', async () => {
-    const review = new Review(false);
-    const reviewData = new ReviewData("reviewId", "title", "", "message", "version", "1", "updated");
-    expect(await review.selectRecord(reviewData, "kind")).toBe(0);
+    const reviewRepository = new ReviewRepository(false);
+    const review = new ReviewModel("reviewId", "title", "", "message", "version", "1", "postedAt");
+    expect(await reviewRepository.selectRecord(review, "kind")).toBe(0);
   })
 });

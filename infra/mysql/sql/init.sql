@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS `review` (
     `title` VARCHAR(255) COMMENT 'レビュータイトル',
     `message` TEXT COMMENT 'レビュー内容',
     `rating` INT(1) UNSIGNED COMMENT '評価',
-    `updated` VARCHAR(255) COMMENT 'レビュー投稿日（日付の文字列）',
+    `posted_at` VARCHAR(255) COMMENT 'レビュー投稿日（日付の文字列）',
     `version` VARCHAR(255) COMMENT 'レビューしたアプリのバージョン',
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '登録日時',
     PRIMARY KEY (`id`, `kind`)

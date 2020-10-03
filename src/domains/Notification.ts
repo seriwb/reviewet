@@ -1,23 +1,22 @@
-import AppData from '../models/AppData';
-import ReviewData from '../models/ReviewData';
+import AppModel from '../models/AppModel';
+import ReviewModel from '../models/ReviewModel';
 import cheerioClient from 'cheerio-httpcli';
 import { emailClient } from '../lib/email';
 import { formatDate } from '../utils/date';
 import fs from 'fs';
 import { slackClient } from '../lib/slack';
 
-// TODO: アプリの情報取得処理がNotificationにあるのがおかしい
 /**
  * 対象OSのアプリレビューを取得して通知する
  */
 export const notificateAppReview = (
-  appData: AppData, outputs: number, useSlack: boolean, useEmail: boolean, reviewDatas: ReviewData[]
+  app: AppModel, outputs: number, useSlack: boolean, useEmail: boolean, reviews: ReviewModel[]
 ) => {
-  const notification = new Notification(appData, reviewDatas);
+  const notification = new Notification(app, reviews);
 
   // 表示件数制御
-  if (outputs >= 0 && reviewDatas !== null && reviewDatas.length > outputs) {
-    reviewDatas.length = outputs;
+  if (outputs >= 0 && reviews !== null && reviews.length > outputs) {
+    reviews.length = outputs;
   }
   if (useSlack) {
     notification.slack();
@@ -28,10 +27,10 @@ export const notificateAppReview = (
   }
 };
 
-
+// TODO: Android側の修正が終わったら削除する
 export const noticeAppReview = (
-  appData: AppData, url: string, outputs: number, useSlack: boolean, useEmail: boolean,
-  appfunc: ($: cheerioClient.CheerioStaticEx, appData: AppData) => Promise<ReviewData[]>
+  app: AppModel, url: string, outputs: number, useSlack: boolean, useEmail: boolean,
+  appfunc: ($: cheerioClient.CheerioStaticEx, app: AppModel) => Promise<ReviewModel[]>
 ) => {
 
   // アプリのレビューデータを取得
@@ -42,11 +41,11 @@ export const noticeAppReview = (
       return;
     }
 
-    appfunc($, appData).then((reviewDatas) => {
-      const notification = new Notification(appData, reviewDatas);
+    appfunc($, app).then((reviews) => {
+      const notification = new Notification(app, reviews);
       // 表示件数制御
-      if (outputs >= 0 && reviewDatas !== null && reviewDatas.length > outputs) {
-        reviewDatas.length = outputs;
+      if (outputs >= 0 && reviews !== null && reviews.length > outputs) {
+        reviews.length = outputs;
       }
       if (useSlack) {
         notification.slack();
@@ -63,60 +62,60 @@ export const noticeAppReview = (
  * 通知処理を行う
  */
 export default class Notification {
-  appData: AppData;
-  reviewDatas: ReviewData[];
+  app: AppModel;
+  reviews: ReviewModel[];
 
-  constructor(appData: AppData, reviewDatas: ReviewData[],) {
-    this.appData = appData;
-    this.reviewDatas = reviewDatas;
+  constructor(app: AppModel, reviews: ReviewModel[],) {
+    this.app = app;
+    this.reviews = reviews;
   }
 
   slack() {
-    if (this.reviewDatas === null || this.reviewDatas.length === 0) {
+    if (this.reviews === null || this.reviews.length === 0) {
       return;
     }
 
     const channel: string = process.env.SLACK_CHANNEL!; // TODO:ないとエラーにする
 
-    for (let i = 0; i < this.reviewDatas.length; i++) {
+    for (let i = 0; i < this.reviews.length; i++) {
 
       slackClient.webhook({
         channel: "#" + channel,
         username: "reviewet",
         attachments: [
           {
-            "fallback": this.appData.name + "の新着レビュー : <" + this.appData.url + ">",
-            "pretext": this.appData.name + "の新着レビュー : <" + this.appData.url + ">",
+            "fallback": this.app.name + "の新着レビュー : <" + this.app.url + ">",
+            "pretext": this.app.name + "の新着レビュー : <" + this.app.url + ">",
             "color": "#529B2F",
             "fields": [
               {
-                "title": this.reviewDatas[i].title,
-                "value": this.reviewDatas[i].message,
+                "title": this.reviews[i].title,
+                "value": this.reviews[i].message,
                 "short": false
               },
               {
                 "title": "Rating",
-                "value": new Array(Number(this.reviewDatas[i].rating) + 1).join(':star:'),
+                "value": new Array(Number(this.reviews[i].rating) + 1).join(':star:'),
                 "short": true
               },
               {
-                "title": "Updated",
-                "value": this.reviewDatas[i].updated,
+                "title": "Post date",
+                "value": this.reviews[i].postedAt,
                 "short": true
               },
               {
                 "title": "OS",
-                "value": this.appData.kind,
+                "value": this.app.kind,
                 "short": true
               },
               {
                 "title": "Version",
-                "value": this.reviewDatas[i].version,
+                "value": this.reviews[i].version,
                 "short": true
               },
               {
                 "title": "Language/Country",
-                "value": this.appData.langCountryCode,
+                "value": this.app.langCountryCode,
                 "short": true
               },
             ]
@@ -132,31 +131,31 @@ export default class Notification {
   }
 
   email() {
-    if (this.reviewDatas === null || this.reviewDatas.length === 0) {
+    if (this.reviews === null || this.reviews.length === 0) {
       return;
     }
 
     const emailTemplate = fs.readFileSync('./email_template.html', 'utf8');
 
     let mailBody = '';
-    for (let i = 0; i < this.reviewDatas.length; i++) {
+    for (let i = 0; i < this.reviews.length; i++) {
       // Placeholderを置換する
       mailBody += emailTemplate
-        .replace('{{ appData.name }}', this.appData.name)
-        .replace(/{{ appData.url }}/g, this.appData.url)
-        .replace('{{ review.title }}', this.reviewDatas[i].title)
-        .replace('{{ review.message }}', this.reviewDatas[i].message)
-        .replace('{{ review.rating }}', new Array(Number(this.reviewDatas[i].rating) + 1).join('☆'))
-        .replace('{{ review.updated }}', this.reviewDatas[i].updated)
-        .replace('{{ review.kind }}', this.appData.kind)
-        .replace('{{ review.version }}', this.reviewDatas[i].version);
+        .replace('{{ app.name }}', this.app.name)
+        .replace(/{{ app.url }}/g, this.app.url)
+        .replace('{{ review.title }}', this.reviews[i].title)
+        .replace('{{ review.message }}', this.reviews[i].message)
+        .replace('{{ review.rating }}', new Array(Number(this.reviews[i].rating) + 1).join('☆'))
+        .replace('{{ review.postedAt }}', this.reviews[i].postedAt)
+        .replace('{{ review.kind }}', this.app.kind)
+        .replace('{{ review.version }}', this.reviews[i].version);
     }
 
     // unicode文字でメールを送信
     const mailOptions: { [s: string]: string } = {  // TODO: これも型が使えないので自分で定義する
       from: `Reviewet <${process.env.EMAIL_FROM!}>`,
       to: process.env.EMAIL_TO!,
-      subject: `[Reviewet][${this.appData.kind}]${this.appData.name}の新着レビュー`,
+      subject: `[Reviewet][${this.app.kind}]${this.app.name}の新着レビュー`,
       html: mailBody
     };
     // メール送信

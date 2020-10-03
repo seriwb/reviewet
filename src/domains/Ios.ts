@@ -1,12 +1,13 @@
-import AppData from '../models/AppData';
+import AppModel from '../models/AppModel';
 import { AppOS } from './AppOS';
 import { IosApp } from 'application';
-import ReviewData from '../models/ReviewData';
+import ReviewModel from '../models/ReviewModel';
 import { changeToArray } from '../utils/array';
 import cheerioClient from 'cheerio-httpcli';
 import { formatDate } from '../utils/date';
 import { notificateAppReview } from './Notification';
 import { parseString } from 'xml2js';
+import puppeteer from 'puppeteer';
 
 export const KIND = "iOS";
 interface Props {
@@ -25,21 +26,41 @@ interface Props {
  * @param {IosApp[]} iosApps レビューを取得するiOSアプリの情報
  */
 export const iosReview = async (props: Props): Promise<void> => {
-  const ios = new Ios(props.ignoreNotification);
 
   for (let i = 0; i < props.iosApps.length; i++) {
     const iosId: string = props.iosApps[i].id;
     const iosCountryCodes: string[] = changeToArray(props.iosApps[i].countryCode);
+
     for (let j = 0; j < iosCountryCodes.length; j++) {
       const iosCountryCode = iosCountryCodes[j];
-      const ios_url: string = ios.getReviewDataUrl(iosId, iosCountryCode);
-      const iosApp = new AppData(KIND, iosId, iosCountryCode);
 
-      const reviewDatas = await ios.getReviewData(ios_url, iosApp);
+      // TODO: アプリが存在していない国に対して取得をかけようとしたときの例外処理が無い
+      const appUrl = `https://apps.apple.com/${iosCountryCode}/app/id${iosId}`;
+      const appName = await getAppName(appUrl);
+      const ios = new Ios(props.ignoreNotification);
+      const reviewDataUrl = ios.getReviewDataUrl(iosId, iosCountryCode);
+      const iosApp = new AppModel(appName, appUrl, KIND, iosId, iosCountryCode);
+      const reviews: ReviewModel[] = await ios.getReviews(reviewDataUrl, iosApp);
+
       // iOSアプリのレビューを通知
-      notificateAppReview(iosApp, props.outputs, props.useSlack, props.useEmail, reviewDatas);
+      notificateAppReview(iosApp, props.outputs, props.useSlack, props.useEmail, reviews);
      }
   }
+};
+
+
+const getAppName = async (url: string): Promise<string> => {
+  // TODO: pupetterで取得
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+  await page.goto(url);
+  await page.screenshot({ path: 'example.png' });
+  let name: string = await page.$eval('.hnname > a', el => el.innerText);
+  await browser.close();
+
+  // TODO: アプリ名を取得
+
+  return name;
 };
 
 class Ios extends AppOS {
@@ -68,7 +89,7 @@ class Ios extends AppOS {
   /**
    * iOSのレビュー情報を解析して、整形したレビューデータを返却する。
    */
-  getReviewData = async (url: string, appData: AppData): Promise<ReviewData[]> => {
+  getReviews = async (url: string, app: AppModel): Promise<ReviewModel[]> => {
     // アプリのレビューデータを取得
     let result: cheerioClient.FetchResult;
     try {
@@ -81,28 +102,28 @@ class Ios extends AppOS {
     return new Promise((resolve, reject) => {
       // RSSの内容を解析してレビューデータを作成
       const reviewDataXml = result.body;//TODO:$.xml();
-      let reviewDatas: ReviewData[] = [];
+      let reviews: ReviewModel[] = [];
 
       parseString(reviewDataXml, (err, result) => { // TODO: xml関連の型を調べる
         // アプリレビューがない場合は終了
         if (!result.feed.entry) {
-          resolve(reviewDatas);
+          resolve(reviews);
           return;
         }
 
         // TODO: これもう取れないので別に処理を書く
         // アプリ情報を設定
-        appData.name = result.feed.entry[0]['im:name'];
-        appData.url = result.feed.entry[0].link[0].$.href;
+        // appData.name = result.feed.entry[0]['im:name'];
+        // appData.url = result.feed.entry[0].link[0].$.href;
 
         // レビュー情報を設定
-        let reviewProcess: Promise<ReviewData>[] = [];
+        let reviewProcess: Promise<ReviewModel>[] = [];
         for (let i = 1; i < result.feed.entry.length; i++) {
           const entry = result.feed.entry[i];
-          reviewProcess.push(this.registerReviewData(appData, entry));
+          reviewProcess.push(this.registerReviewData(app, entry));
         }
         Promise.all(reviewProcess).then((datas) => {
-          let returnData: ReviewData[] = [];
+          let returnData: ReviewModel[] = [];
           for (let i = 0; i < datas.length; i++) {
             if (datas[i] !== null) {
               returnData.push(datas[i]);
@@ -117,16 +138,18 @@ class Ios extends AppOS {
 
   /**
    * iOSのレビュー情報の解析処理。
+   *
+   * @param entry 解析元情報
    */
-  analyzeReviewData = (entry: any, appData: AppData): ReviewData => {
+  analyzeReviewData = (entry: any): ReviewModel => {
     const reviewId = entry.id[0];
     const title = entry.title[0];
     const message = entry.content[0]._;
     const rating = entry['im:rating'];
     const version = entry['im:version'] + ''; // 文字列に変換
     // Android側の制御にあわせて日付を文字列で保持する
-    const updated = formatDate(new Date(entry.updated[0]), "YYYY/MM/DD hh:mm:ss");
+    const postedAt = formatDate(new Date(entry.updated[0]), "YYYY/MM/DD hh:mm:ss");
 
-    return new ReviewData(reviewId, title, "", message, version, rating, updated); // TODO: アプリ名とURLの取得処理が追加で必要
+    return new ReviewModel(reviewId, title, "", message, version, rating, postedAt); // TODO: タイトルリンクの取得処理が必要だが、iOS側は取得できる現状レビュー単位のURLが使い物にならない
   };
 }

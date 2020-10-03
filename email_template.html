@@ -1,4 +1,4 @@
-{{ appData.name }}の新着レビュー : <a href="{{ appData.url }}" target="_blank">{{ appData.url }}</a><br>
+{{ app.name }}の新着レビュー : <a href="{{ app.url }}" target="_blank">{{ app.url }}</a><br>
 <div style="display: inline-block;">
   <table class="" cellpadding="0" cellspacing="0" border="0" align="left">
     <tbody>
@@ -16,9 +16,9 @@
           <div>{{ review.rating }}<i><br><br></i></div>
         </td>
         <td valign="top" colspan="1">
-          <div>Updated</div>
+          <div>Post date</div>
           <i>----------------<br></i>
-          <div>{{ review.updated }}<i><br><br></i></div>
+          <div>{{ review.postedAt }}<i><br><br></i></div>
         </td>
       </tr>
       <tr>

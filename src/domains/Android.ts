@@ -1,7 +1,7 @@
 import { AndroidApp } from 'application';
-import AppData from '../models/AppData';
-import Review from '../repositories/Review';
-import ReviewData from '../models/ReviewData';
+import AppModel from '../models/AppModel';
+import ReviewRepository from '../repositories/ReviewRepository';
+import ReviewModel from '../models/ReviewModel';
 import { changeToArray } from '../utils/array';
 import { noticeAppReview } from './Notification';
 
@@ -29,7 +29,7 @@ export const androidReview = (props: Props) => {
     for (let j = 0; j < androidLanguageCodes.length; j++) {
       const androidLanguageCode = androidLanguageCodes[j];
       const android_url: string = android.getReviewDataUrl(androidId, androidLanguageCode);
-      const androidApp = new AppData(KIND, androidId, androidLanguageCode);
+      const androidApp = new AppModel("", "", KIND, androidId, androidLanguageCode);
 
       // Androidはストアサイトから直接データを取得するので、遷移先のURLにそのまま使う
       androidApp.url = android_url;
@@ -41,10 +41,10 @@ export const androidReview = (props: Props) => {
 };
 
 class Android {
-  review: Review;
+  reviewRepository: ReviewRepository;
 
   constructor(ignoreNotification: boolean) {
-    this.review = new Review(ignoreNotification);
+    this.reviewRepository = new ReviewRepository(ignoreNotification);
 
     this.getReviewDataUrl = this.getReviewDataUrl.bind(this);
     this.analyzeData = this.analyzeData.bind(this);
@@ -65,10 +65,10 @@ class Android {
    * ※Androidは$をそのまま使って処理してみる
    *
    * @param $
-   * @param appData
+   * @param app
    * @returns {Promise}
    */
-  analyzeData($: any, appData: AppData): Promise<ReviewData[]> {
+  analyzeData($: any, app: AppModel): Promise<ReviewModel[]> {
 
     return new Promise((resolve, reject) => {
 
@@ -76,12 +76,12 @@ class Android {
       $('div.review-link').remove();
 
       // アプリ情報を設定
-      appData.name = $('.id-app-title').text();
+      app.name = $('.id-app-title').text();
 
       // レビュー情報を設定
-      let reviewProcess: Promise<ReviewData>[] = [];
+      let reviewProcess: Promise<ReviewModel>[] = [];
       $('.single-review').each((i: number, element: any) => {
-        reviewProcess.push(this.getReview($, appData, element));
+        reviewProcess.push(this.getReview($, app, element));
       });
       Promise.all(reviewProcess).then((data) => {
         let returnData = [];
@@ -101,16 +101,16 @@ class Android {
    * 取得したレビュー情報が新規であればDBに保存し、通知用データとして返却する。
    *
    * @param $
-   * @param appData
+   * @param app
    * @param element
    * @returns {Promise}
    */
-  getReview($: any, appData: AppData, element: any): Promise<ReviewData> {
+  getReview($: any, app: AppModel, element: any): Promise<ReviewModel> {
 
     return new Promise((resolve, reject) => {
       const reviewInfo = $(element).find('.review-info');
       const reviewId = $(element).find('.review-header').attr('data-reviewid');
-      const updated = $(reviewInfo).find('.review-date').text();
+      const postedAt = $(reviewInfo).find('.review-date').text();
 
       // TODO:日本語以外にも対応する
       const tempRating = $(reviewInfo).find('.review-info-star-rating .tiny-star').attr('aria-label');
@@ -127,11 +127,11 @@ class Android {
       const tempMessage = $(reviewBody).text().replace(title, "");
       const message = tempMessage.trim();
 
-      const reviewData = new ReviewData(reviewId, title, "", message, version, rating, updated);
+      const review = new ReviewModel(reviewId, title, "", message, version, rating, postedAt);
 
       // DBに登録を試みて、登録できれば新規レビューなので通知用レビューデータとして返却する
-      this.review.insertReviewData(appData, reviewData).then((result) => {
-        this.review.pushData(result, reviewData).then((data) => {
+      this.reviewRepository.insertReviewData(app, review).then((result) => {
+        this.reviewRepository.pushData(result, review).then((data) => {
           if (data) {
             resolve(data);
           }

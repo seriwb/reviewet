@@ -1,30 +1,33 @@
-import AppData from '../models/AppData';
-import Review from '../repositories/Review';
-import ReviewData from '../models/ReviewData';
+import AppModel from '../models/AppModel';
+import ReviewRepository from '../repositories/ReviewRepository';
+import ReviewModel from '../models/ReviewModel';
 
 export abstract class AppOS {
-  private review: Review;
+  private reviewRepository: ReviewRepository;
 
   protected constructor(ignoreNotification: boolean) {
-    this.review = new Review(ignoreNotification);
+    this.reviewRepository = new ReviewRepository(ignoreNotification);
   }
 
   abstract getReviewDataUrl(appId: string, countryCode: string, page: number): string;
-  abstract getReviewData($: any, appData: AppData): Promise<ReviewData[]>;
-  abstract analyzeReviewData(entry: any, appData: AppData): ReviewData;
+  abstract getReviews($: any, app: AppModel): Promise<ReviewModel[]>;
+  abstract analyzeReviewData(entry: any, app: AppModel): ReviewModel;
 
   /**
-   * iOSのレビュー情報の登録処理。
+   * レビュー情報の登録処理。
    * 取得したレビュー情報が新規であればDBに保存し、通知用データとして返却する。
+   *
+   * @param entry 解析元データ
+   * @param app アプリ情報
    */
-  registerReviewData = (entry: any, appData: AppData): Promise<ReviewData> => {
+  registerReviewData = (entry: any, app: AppModel): Promise<ReviewModel> => {
 
     return new Promise((resolve, reject) => {
-      const reviewData = this.analyzeReviewData(entry, appData);
+      const review = this.analyzeReviewData(entry, app);
 
       // DBに登録を試みて、登録できれば新規レビューなので通知用レビューデータとして返却する
-      this.review.insertReviewData(appData, reviewData).then((result) => {
-        this.review.pushData(result, reviewData).then((data) => {
+      this.reviewRepository.insertReviewData(app, review).then((result) => {
+        this.reviewRepository.pushData(result, review).then((data) => {
           if (data) {
             resolve(data);
           }

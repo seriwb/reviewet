@@ -1,12 +1,12 @@
-import AppData from '../models/AppData';
-import ReviewData from '../models/ReviewData';
+import AppModel from '../models/AppModel';
+import ReviewModel from '../models/ReviewModel';
 import { mysqlClient } from '../lib/mysql';
 import { RowDataPacket, FieldPacket } from 'mysql2';
 
 /**
  * レビューの取得・解析処理を行う
  */
-export default class Review {
+export default class ReviewRepository {
   ignoreNotification: boolean;  // 初回通知しないオプション（起動後に設定されたレビュー結果を通知しないためのオプション）
 
   constructor(ignoreNotification: boolean) {
@@ -22,21 +22,21 @@ export default class Review {
    * テーブルにレビューIDがすでに存在する場合は登録処理をしないでfalseを返す。
    * Insertできた場合はtrueを返す。
    *
-   * @param appData
-   * @param reviewData
+   * @param app
+   * @param review
    * @returns {Promise}
    */
-  async insertReviewData(appData: AppData, reviewData: ReviewData): Promise<boolean> {
+  async insertReviewData(app: AppModel, review: ReviewModel): Promise<boolean> {
 
     // レコードの有無をチェックする
-    if (await this.selectRecord(reviewData, appData.kind) === 0) {
+    if (await this.selectRecord(review, app.kind) === 0) {
       try {
         const [rows, fields]: [RowDataPacket[], FieldPacket[]] = await mysqlClient.execute(
-          "INSERT INTO review(id, kind, app_name, title, message, rating, updated, version) " +
+          "INSERT INTO review(id, kind, app_name, title, message, rating, posted_at, version) " +
           "VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
           [
-            reviewData.reviewId, appData.kind, appData.name, reviewData.title, reviewData.message,
-            reviewData.rating, reviewData.updated, reviewData.version
+            review.reviewId, app.kind, app.name, review.title, review.message,
+            review.rating, review.postedAt, review.version
           ]);
         return true;
       } catch (e) {
@@ -52,14 +52,14 @@ export default class Review {
  * 通知対象とするかの判定処理
  *
  * @param result
- * @param reviewData
+ * @param review
  * @returns {Promise}
  */
-pushData(result: boolean, reviewData: ReviewData): Promise < ReviewData | null > {
+pushData(result: boolean, review: ReviewModel): Promise < ReviewModel | null > {
   return new Promise((resolve, reject) => {
     // DB登録ができて通知可能な場合に、通知対象とする
     if (result && !this.ignoreNotification) {
-      resolve(reviewData);
+      resolve(review);
     } else {
       // レビュー情報が重複している、または通知しないオプションが付いていれば通知対象にしない
       resolve(null);
@@ -74,9 +74,9 @@ pushData(result: boolean, reviewData: ReviewData): Promise < ReviewData | null >
  * @param condition チェック対象のレビューデータ
  * @param kind アプリのOS種別
  */
-async selectRecord(reviewData: ReviewData, kind: string): Promise < number > {
+async selectRecord(review: ReviewModel, kind: string): Promise < number > {
   const [rows, fields]: [RowDataPacket[], FieldPacket[]] = await mysqlClient.execute(
-    'SELECT count(*) as cnt FROM review WHERE id = ? AND kind = ?', [reviewData.reviewId, kind]);
+    'SELECT count(*) as cnt FROM review WHERE id = ? AND kind = ?', [review.reviewId, kind]);
   return rows[0]['cnt'];
 }
 }

@@ -9,7 +9,7 @@ services:
     tty: true
     working_dir: "/reviewet"
     env_file:
-      - ./.env
+      - ./.env.local
     volumes:
       - .:/reviewet:cached
     networks:
@@ -17,7 +17,7 @@ services:
 
   mysql:
     image: mysql:5.7
-    container_name: reviewet_db
+    container_name: reviewet_mysql
     environment:
       MYSQL_ROOT_PASSWORD: "root"
       MYSQL_DATABASE: "reviewet"
