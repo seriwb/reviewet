@@ -5,15 +5,15 @@ app:
     countryCode:
       - jp
       - us
-  android:
-    id: com.google.android.googlequicksearchbox
-    languageCode: ja
+  # android:
+  #   id: com.google.android.googlequicksearchbox
+  #   languageCode: ja
 
 cron:
   time: '0 * * * *'
   timeZone: Asia/Tokyo
 
-firstTimeIgnore: true
+firstTimeIgnore: false
 outputs: 3
 maxConnections: 1
 

@@ -31,18 +31,17 @@ export default class ReviewRepository {
     // レコードの有無をチェックする
     if (await this.selectRecord(review, app.kind) === 0) {
       try {
-        // TODO: 言語コードを入れる
         const [rows, fields]: [RowDataPacket[], FieldPacket[]] = await mysqlClient.execute(
-          "INSERT INTO review(id, kind, app_name, title, message, rating, posted_at, version) " +
-          "VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
+          "INSERT INTO review(id, kind, app_name, code, title, message, rating, posted_at, version) " +
+          "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
           [
-            review.reviewId, app.kind, app.name, review.title, review.message,
+            review.reviewId, app.kind, app.name, app.langCountryCode, review.title, review.message,
             review.rating, review.postedAt, review.version
           ]);
         return true;
       } catch (e) {
         // TODO: 例外時の対応を検討したい
-        console.log('登録失敗！！')
+        console.log('登録失敗！！', e)
         return false;
       }
     } else {

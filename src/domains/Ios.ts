@@ -61,14 +61,12 @@ const getAppName = async (url: string): Promise<string> => {
   const page = await browser.newPage();
   await page.goto(url);
 
-  const xpath = '//h1[contains(@class, "product-header__title")]/text()';
-  const elems = await page.$x(xpath);
-  const jsHandle = await elems[1].getProperty('textContent');
-  const name = await jsHandle.jsonValue();
+  const jsonValue = await page.$eval('script[name="schema:software-application"]', (el: Element) => el.textContent);
   await browser.close();
 
-  if (typeof name === 'string') {
-    return Promise.resolve(name);
+  if (typeof jsonValue === 'string') {
+    const applicationJson = JSON.parse(jsonValue);
+    return Promise.resolve(applicationJson['name']);
   }
   else {
     return Promise.resolve("!!!No Name!!!");

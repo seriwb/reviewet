@@ -42,6 +42,26 @@ describe('Puppeteer test', () => {
   //     expect(name).toBe('Facebook');
   //   }
   // });
+
+  // JSON取得のテスト
+  test('Get App Name2', async () => {
+    const appUrl = `https://apps.apple.com/us/app/id490217893`;
+    const page = await browser.newPage();
+    await page.goto(appUrl, { waitUntil: 'networkidle0' });
+    // const jsonValue = await page.$eval('script[name="schema:software-application"]', (el: Element) => el.textContent);
+
+    const xpath = '//script[@name="schema:software-application"]/text()';
+    const elems = await page.$x(xpath);
+    console.log(elems.length);
+    const jsHandle = await elems[0].getProperty('textContent');
+    const jsonValue = await jsHandle.jsonValue();
+
+    if (typeof jsonValue === 'string') {
+      const applicationJson = JSON.parse(jsonValue);
+      console.log(applicationJson);
+      expect(applicationJson['name']).toBe('iTunes U');
+    }
+  });
 });
 
 describe('Ios test', () => {
