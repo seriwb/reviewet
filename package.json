@@ -44,6 +44,7 @@
     "start": "node dist/app.js",
     "clean": "rm -rf dist",
     "test": "jest --watch",
+    "test:debug": "jest --watch --silent=false --verbose false",
     "test:ci": "jest --ci"
   },
   "repository": {

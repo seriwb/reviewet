@@ -48,19 +48,31 @@ export const iosReview = async (props: Props): Promise<void> => {
   }
 };
 
-
+/**
+ * アプリ名が見つからなかった場合は、ダミー名を返却する
+ *
+ * @param url アプリ情報取得先URL
+ */
 const getAppName = async (url: string): Promise<string> => {
   // TODO: pupetterで取得
-  const browser = await puppeteer.launch();
+  const browser = await puppeteer.launch({
+    args: ['--no-sandbox']
+  });
   const page = await browser.newPage();
   await page.goto(url);
-  await page.screenshot({ path: 'example.png' });
-  let name: string = await page.$eval('.hnname > a', el => el.innerText);
+
+  const xpath = '//h1[contains(@class, "product-header__title")]/text()';
+  const elems = await page.$x(xpath);
+  const jsHandle = await elems[1].getProperty('textContent');
+  const name = await jsHandle.jsonValue();
   await browser.close();
 
-  // TODO: アプリ名を取得
-
-  return name;
+  if (typeof name === 'string') {
+    return Promise.resolve(name);
+  }
+  else {
+    return Promise.resolve("!!!No Name!!!");
+  }
 };
 
 class Ios extends AppOS {

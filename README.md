@@ -10,49 +10,39 @@ Androidのストアレビューにはレビュー時のバージョン情報が�
 
 ## Requirement
 
-- Node.js v14+
-
-or
-
-- Docker
+- Docker Compose
 
 
 ## Running commands
 
-Reviewetを実行するためには、Node.jsとgitがインストールされた環境で、以下のコマンドを実施してください。
+Reviewetを実行するためには、本リポジトリのデータが配置されたディレクトリ配下で、以下のコマンドを実施してください。
 
 ```
 $ git clone https://github.com/seriwb/reviewet.git
 $ cd reviewet
 $ vi config/default.yml    # 変更方法はSetting Cofigurationsを参照
-$ npm install
-$ npm run build
-$ npm run fstart
+$ cp .env .env.local
+$ vi .env.local            # 環境変数値を設定
+$ sudo docker-compose up -d
+$ sudo docker-compose exec app yarn start
 ```
 
-または、Docker環境下で以下のように実施してください。
+### Maintenance
+
+一度実行後、データを初期状態に戻したい場合は、MySQLのreviewetデータベースのreviewテーブルのデータを削除してください。
+
+Docker Composeで起動している場合の手順は以下になります。
 
 ```
-$ git clone https://github.com/seriwb/reviewet.git
-$ cd reviewet
-$ vi config/default.yml    # 変更方法はSetting Cofigurationsを参照
-$ sudo docker build -t reviewet ./
-$ sudo docker run -v `pwd`:/reviewet -itd reviewet
+ホスト側
+$ docker-compose exec mysql bash
+
+コンテナ側
+# mysql -uadmin -padmin -h mysql reviewet
+
+MySQLコンソール側
+> truncate table review;
 ```
-
-
-### Maintenance commands
-
-登録された以下のforeverコマンドを使って、Reviewetのメンテナンスを行うことができます。
-
-| コマンド         | 用途               |
-| :--------------- | :----------------- |
-| npm run flist    | 稼動状況をチェック |
-| npm run fstop    | Reviewetの停止     |
-| npm run fstart   | Reviewetの起動     |
-| npm run frestart | Reviewetの再起動   |
-
-※一度実行後、データを初期状態に戻したい場合は、reviewetディレクトリ配下に作成される```reviewet.sqlite```を削除して再実行してください。
 
 
 ## Setting Configurations
@@ -188,26 +178,17 @@ emailの「use」をtrueにすると、メール通知機能が有効になり�
 
 ## For Developer
 
-Reviewetの実行コードは、`src/main`配下のコードをbabelでトランスパイルして`dist/main`配下に出力しています。
+Reviewetの実行コードは、`src`配下のコードをwebpackでトランスパイルして`dist/main`配下に出力しています。
 
 コード変更後は、以下のコマンドで実行コードを再生成してください。
 
 ```
-$ npm run clean; npm run build
+$ yarn run clean; yarn build
 ```
 
-また動作確認には、`npm start`コマンドが利用できます。
+また動作確認には、`yarn start`コマンドが利用できます。
 
 
-### Docker build
-
-以下のようにすることで、Dockerを利用して開発することができます。
-
-```
-$ sudo docker build -t reviewet-local ./
-$ sudo docker run -v `pwd`:/reviewet -itd reviewet-local /bin/bash
-$ sudo docker attach コンテナID
-```
 
 ## License
 

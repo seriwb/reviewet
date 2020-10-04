@@ -9,7 +9,7 @@ services:
     tty: true
     working_dir: "/reviewet"
     env_file:
-      - ./.env
+      - ./.env.local
     volumes:
       - .:/reviewet:cached
     networks:
