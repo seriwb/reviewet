@@ -1,6 +1,5 @@
 import AppModel from '../models/AppModel';
 import ReviewModel from '../models/ReviewModel';
-import cheerioClient from 'cheerio-httpcli';
 import { emailClient } from '../lib/email';
 import { formatDate } from '../utils/date';
 import fs from 'fs';
@@ -25,37 +24,6 @@ export const notificateAppReview = (
   if (useEmail) {
     notification.email();
   }
-};
-
-// TODO: Android側の修正が終わったら削除する
-export const noticeAppReview = (
-  app: AppModel, url: string, outputs: number, useSlack: boolean, useEmail: boolean,
-  appfunc: ($: cheerioClient.CheerioStaticEx, app: AppModel) => Promise<ReviewModel[]>
-) => {
-
-  // アプリのレビューデータを取得
-  const param = {};
-  cheerioClient.fetch(url, param, (err, $, res, body) => {
-    if (err) {
-      console.log(formatDate(new Date(), "YYYY/MM/DD hh:mm:ss") + " Error:", err);
-      return;
-    }
-
-    appfunc($, app).then((reviews) => {
-      const notification = new Notification(app, reviews);
-      // 表示件数制御
-      if (outputs >= 0 && reviews !== null && reviews.length > outputs) {
-        reviews.length = outputs;
-      }
-      if (useSlack) {
-        notification.slack();
-      }
-
-      if (useEmail) {
-        notification.email();
-      }
-    });
-  });
 };
 
 /**

@@ -31,6 +31,7 @@ export default class ReviewRepository {
     // レコードの有無をチェックする
     if (await this.selectRecord(review, app.kind) === 0) {
       try {
+        // TODO: 言語コードを入れる
         const [rows, fields]: [RowDataPacket[], FieldPacket[]] = await mysqlClient.execute(
           "INSERT INTO review(id, kind, app_name, title, message, rating, posted_at, version) " +
           "VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
@@ -41,6 +42,7 @@ export default class ReviewRepository {
         return true;
       } catch (e) {
         // TODO: 例外時の対応を検討したい
+        console.log('登録失敗！！')
         return false;
       }
     } else {

@@ -3,7 +3,7 @@ import AppModel from '../models/AppModel';
 import ReviewRepository from '../repositories/ReviewRepository';
 import ReviewModel from '../models/ReviewModel';
 import { changeToArray } from '../utils/array';
-import { noticeAppReview } from './Notification';
+import { notificateAppReview } from './Notification';
 
 export const KIND = "Android";
 
@@ -35,7 +35,7 @@ export const androidReview = (props: Props) => {
       androidApp.url = android_url;
 
       // Androidアプリのレビューを通知
-      noticeAppReview(androidApp, android_url, props.outputs, props.useSlack, props.useEmail, android.analyzeData);
+      // TODO:noticeAppReview(androidApp, android_url, props.outputs, props.useSlack, props.useEmail, android.analyzeData);
     }
   }
 };
