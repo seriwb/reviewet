@@ -1,11 +1,15 @@
-FROM node:11
+FROM node:14-slim
 
-RUN mkdir -p /reviewet
-COPY . /reviewet/
+RUN apt-get update \
+  && apt-get install -y git build-essential \
+     # for puppeteer
+     libgtk-3.0 libgbm-dev libnss3 libatk-bridge2.0-0 libasound2 \
+  && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /reviewet
 
-RUN npm install
-RUN npm run build
+COPY . .
 
-CMD ["npm", "run", "fstart"]
+RUN yarn && yarn run build
+
+CMD ["yarn", "start"]

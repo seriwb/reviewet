@@ -1,0 +1,45 @@
+version: '3.7'
+services:
+  app:
+    build:
+      context: ./
+    image: reviewet/app
+    container_name: reviewet_app
+    command: bash
+    tty: true
+    working_dir: "/reviewet"
+    env_file:
+      - ./.env.local
+    volumes:
+      - .:/reviewet:cached
+    networks:
+      - reviewet-network
+
+  mysql:
+    image: mysql:5.7
+    container_name: reviewet_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: "root"
+      MYSQL_DATABASE: "reviewet"
+      MYSQL_USER: "admin"
+      MYSQL_PASSWORD: "admin"
+    volumes:
+      - ./infra/mysql/sql:/docker-entrypoint-initdb.d
+      - ./infra/mysql/conf.d:/etc/mysql/conf.d
+      - mysql-db-volume:/var/lib/mysql
+      - mysql-log-volume:/var/log/mysql
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    networks:
+      - reviewet-network
+
+
+networks:
+  reviewet-network:
+
+volumes:
+  mysql-db-volume:
+    external: false
+  mysql-log-volume:
+    external: false

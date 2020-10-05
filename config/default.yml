@@ -1,39 +1,26 @@
 ---
-appId:
-  iOS: 490217893
-  android: com.google.android.googlequicksearchbox
-acceptLanguage: ja
-# app:
-#   iOS:
-#     id: 490217893
-#     countryCode:
-#       - jp
-#       - us
-#   android:
-#     id: com.google.android.googlequicksearchbox
-#     languageCode: ja
+app:
+  iOS:
+    id: 490217893
+    countryCode:
+      - jp
+      - us
+  android:
+    id: com.google.android.googlequicksearchbox
+    languageCode:
+      - ja
+      - en
 
 cron:
   time: '0 * * * *'
   timeZone: Asia/Tokyo
 
-firstTimeIgnore: true
+firstTimeIgnore: false
 outputs: 3
 maxConnections: 1
 
 slack:
   use: true
-  webhook: https://xxxxxxxxxxxxxxxxxxx
-  channel: channelname
 
 email:
   use: false
-  smtp:
-    host: smtp.gmail.com
-    port: 465
-    ssl: true
-    auth:
-      user: 'username@gmail.com'
-      pass: 'userpassword'
-  from: 'sendFrom@mail.com'
-  to: 'sendTo@mail.com'
