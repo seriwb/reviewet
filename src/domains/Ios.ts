@@ -1,4 +1,4 @@
-import puppeteer, { Browser, ElementHandle, Page } from 'puppeteer';
+import puppeteer, { ElementHandle, Page } from 'puppeteer';
 
 import AppModel from '../models/AppModel';
 import { AppOS } from './AppOS';
@@ -10,6 +10,7 @@ import { formatDate } from '../utils/date';
 import { notificateAppReview } from './Notification';
 
 export const KIND = "iOS";
+
 interface Props {
   iosApps: IosApp[];
   outputs: number;
@@ -20,58 +21,49 @@ interface Props {
 
 /**
  * iOSのストアレビューを通知する
- * 指定されたiOS/AndroidのアプリIDに対して、レビューの取得処理を実施する。
- * 設定されていないOSについては何もしない。
+ * 指定されたiOSのアプリIDに対して、国コード別のレビューを取得し、結果を通知する。
  *
- * @param {IosApp[]} iosApps レビューを取得するiOSアプリの情報
+ * @param props レビューを取得するiOSアプリの情報
  */
 export const iosReview = async (props: Props): Promise<void> => {
-
-  for (let i = 0; i < props.iosApps.length; i++) {
-    const iosId: string = props.iosApps[i].id;
-    const iosCountryCodes: string[] = changeToArray(props.iosApps[i].countryCode);
-
-    for (let j = 0; j < iosCountryCodes.length; j++) {
-      const iosCountryCode = iosCountryCodes[j];
-
-      // TODO: アプリが存在していない国に対して取得をかけようとしたときの例外処理が無い
-      const appUrl = `https://apps.apple.com/${iosCountryCode}/app/id${iosId}`;
-      const appName = await getAppName(appUrl);
-      const ios = new Ios(props.ignoreNotification);
-      const reviewDataUrl = ios.getReviewDataUrl(iosId, iosCountryCode);
-      const iosApp = new AppModel(appName, appUrl, KIND, iosId, iosCountryCode);
-      const reviews: ReviewModel[] = await ios.createReviews(reviewDataUrl, iosApp);
-
-      // iOSアプリのレビューを通知
-      notificateAppReview(iosApp, props.outputs, props.useSlack, props.useEmail, reviews);
-     }
-  }
-};
-
-/**
- * アプリ名が見つからなかった場合は、ダミー名を返却する
- *
- * @param url アプリ情報取得先URL
- */
-const getAppName = async (url: string): Promise<string> => {
-  // TODO: pupetterで取得
   const browser = await puppeteer.launch({
     args: ['--no-sandbox']
   });
-  const page = await browser.newPage();
-  await page.goto(url);
 
-  const jsonValue = await page.$eval('script[name="schema:software-application"]', (el: Element) => el.textContent);
-  await browser.close();
+  try {
+    const page = await browser.newPage();
 
-  if (typeof jsonValue === 'string') {
-    const applicationJson = JSON.parse(jsonValue);
-    return Promise.resolve(applicationJson['name']);
-  }
-  else {
-    return Promise.resolve("!!!No Name!!!");
+    for (let i = 0; i < props.iosApps.length; i++) {
+      const iosId: string = props.iosApps[i].id;
+      const iosCountryCodes: string[] = changeToArray(props.iosApps[i].countryCode);
+
+      for (let j = 0; j < iosCountryCodes.length; j++) {
+        const iosCountryCode = iosCountryCodes[j];
+        const ios = new Ios(props.ignoreNotification);
+
+        // iOSアプリの情報を生成
+        // TODO: アプリが存在していない国に対して取得をかけようとしたときの例外処理が無い
+        const appUrl = `https://apps.apple.com/${iosCountryCode}/app/id${iosId}`;
+        await page.goto(appUrl);
+        const appName = await ios.getAppName(page);
+        const iosApp = new AppModel(appName, appUrl, KIND, iosId, iosCountryCode);
+
+        // アプリのレビューデータを取得
+        const reviewDataUrl = ios.getReviewDataUrl(iosId, iosCountryCode);
+        await page.goto(reviewDataUrl);
+        const reviews: ReviewModel[] = await ios.createReviews(page, iosApp);
+
+        // iOSアプリのレビューを通知
+        notificateAppReview(iosApp, props.outputs, props.useSlack, props.useEmail, reviews);
+      }
+    }
+  } catch (e) {
+    console.log(e);
+  } finally {
+    await browser.close();
   }
 };
+
 
 class Ios extends AppOS {
 
@@ -97,20 +89,29 @@ class Ios extends AppOS {
   };
 
   /**
+   * アプリ名が見つからなかった場合は、ダミー名を返却する
+   *
+   * @param page アプリ情報取得先ページ
+   */
+  getAppName = async (page: Page): Promise<string> => {
+    const jsonValue = await page.$eval('script[name="schema:software-application"]', (el: Element) => el.textContent);
+
+    if (typeof jsonValue === 'string') {
+      const applicationJson = JSON.parse(jsonValue);
+      return Promise.resolve(applicationJson['name']);
+    }
+    else {
+      return Promise.resolve("!!!No Name!!!");
+    }
+  };
+
+  /**
    * iOSのレビュー情報を取得・解析して、整形したレビューデータを返却する。
    *
-   * @param url
+   * @param page
    * @param app
    */
-  createReviews = async (url: string, app: AppModel): Promise<ReviewModel[]> => {
-    // アプリのレビューデータを取得
-    const browser: Browser = await puppeteer.launch({
-      args: ['--no-sandbox']
-    });
-    const page: Page = await browser.newPage();
-    await page.goto(url);
-
-    // レビューデータの分析と登録
+  createReviews = async (page: Page, app: AppModel): Promise<ReviewModel[]> => {
     const entryHandles = await page.$$('entry');
     const reviews: ReviewModel[] = await Promise.all(
       entryHandles.map(async (entryHandle: ElementHandle) => {
@@ -122,7 +123,9 @@ class Ios extends AppOS {
         });
         await entryHandle.dispose();
 
-        return await this.registerReviewData($, app);
+        // レビューデータの分析と登録
+        const review = this.analyzeReviewData($);
+        return await this.registerReviewData(app, review);
       })
     );
 

@@ -28,7 +28,6 @@ if (config.get('maxConnections')) {
   const androidApps: AndroidApp[] = config.has('app.android') ? changeToArray(config.get('app.android')) : [];
 
   new CronJob(CRON_TIME, () => {
-    console.log(CRON_TIME);
 
     // 未設定の場合は全件表示
     if (outputs === null) {

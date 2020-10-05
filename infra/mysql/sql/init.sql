@@ -7,7 +7,7 @@ GRANT ALL ON *.* TO 'admin'@'127.0.0.1' WITH GRANT OPTION;
 FLUSH PRIVILEGES;
 
 CREATE TABLE IF NOT EXISTS `review` (
-    `id` bigint(20) NOT NULL COMMENT 'レビューID',
+    `id` VARCHAR(255) NOT NULL COMMENT 'レビューID',
     `kind` VARCHAR(255) COMMENT 'アプリのOS種別',
     `app_name` VARCHAR(255) COMMENT 'アプリ名',
     `code` VARCHAR(2) COMMENT '言語／国コード',

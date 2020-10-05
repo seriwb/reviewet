@@ -1,8 +1,11 @@
+import puppeteer, { ElementHandle, Page } from 'puppeteer';
+
 import { AndroidApp } from 'application';
 import AppModel from '../models/AppModel';
-import ReviewRepository from '../repositories/ReviewRepository';
+import { AppOS } from './AppOS';
 import ReviewModel from '../models/ReviewModel';
 import { changeToArray } from '../utils/array';
+import cheerio from 'cheerio';
 import { notificateAppReview } from './Notification';
 
 export const KIND = "Android";
@@ -17,126 +20,132 @@ interface Props {
 
 /**
  * Androidのストアレビューを通知する
+ * 指定されたAndroidのアプリIDに対して、言語別のレビューを取得し、結果を通知する。
  *
- * @param {AndroidApp[]} androidApps レビューを取得するAndroidアプリの情報
+ * @param props レビューを取得するAndroidアプリの情報
  */
-export const androidReview = (props: Props) => {
-  const android = new Android(props.ignoreNotification);
+export const androidReview = async (props: Props): Promise<void> => {
+  const browser = await puppeteer.launch({
+    args: ['--no-sandbox']
+  });
 
-  for (let i = 0; i < props.androidApps.length; i++) {
-    const androidId: string = props.androidApps[i].id;
-    const androidLanguageCodes: string[] = changeToArray(props.androidApps[i].languageCode);
-    for (let j = 0; j < androidLanguageCodes.length; j++) {
-      const androidLanguageCode = androidLanguageCodes[j];
-      const android_url: string = android.getReviewDataUrl(androidId, androidLanguageCode);
-      const androidApp = new AppModel("", "", KIND, androidId, androidLanguageCode);
+  try {
+    const page = await browser.newPage();
 
-      // Androidはストアサイトから直接データを取得するので、遷移先のURLにそのまま使う
-      androidApp.url = android_url;
+    for (let i = 0; i < props.androidApps.length; i++) {
+      const androidId: string = props.androidApps[i].id;
+      const androidLanguageCodes: string[] = changeToArray(props.androidApps[i].languageCode);
 
-      // Androidアプリのレビューを通知
-      // TODO:noticeAppReview(androidApp, android_url, props.outputs, props.useSlack, props.useEmail, android.analyzeData);
+      for (let j = 0; j < androidLanguageCodes.length; j++) {
+        const androidLanguageCode = androidLanguageCodes[j];
+        const android = new Android(props.ignoreNotification);
+
+        // Androidはストアサイトから直接データを取得するので、遷移先のURLにそのまま使う
+        const reviewDataUrl: string = android.getReviewDataUrl(androidId, androidLanguageCode);
+
+        // Androidアプリの情報を生成
+        await page.goto(reviewDataUrl, { waitUntil: 'networkidle0' });
+        const appName = await android.getAppName(page);
+        const androidApp = new AppModel(appName, reviewDataUrl, KIND, androidId, androidLanguageCode);
+
+        // アプリのレビューデータを取得
+        await page.goto(reviewDataUrl + '&showAllReviews=true', { waitUntil: 'networkidle0' });
+        const reviews: ReviewModel[] = await android.createReviews(page, androidApp);
+
+        // Androidアプリのレビューを通知
+        notificateAppReview(androidApp, props.outputs, props.useSlack, props.useEmail, reviews);
+      }
     }
+  } catch (e) {
+    console.log(e);
+  } finally {
+    await browser.close();
   }
 };
 
-class Android {
-  reviewRepository: ReviewRepository;
+class Android extends AppOS {
 
   constructor(ignoreNotification: boolean) {
-    this.reviewRepository = new ReviewRepository(ignoreNotification);
-
-    this.getReviewDataUrl = this.getReviewDataUrl.bind(this);
-    this.analyzeData = this.analyzeData.bind(this);
-    this.getReview = this.getReview.bind(this);
+    super(ignoreNotification);
   }
+
   /**
    * Androidアプリのレビューデータ取得元のURLを生成する。
+   * すべてのレビューを参照する場合は、パラメータに&showAllReviews=trueを追加する必要がある
+   *
    * @param {string} appId 取得対象アプリのGooglePlay ID
    * @param {string} languageCode 取得対象アプリのGooglePlay言語コード
    */
-  getReviewDataUrl(appId: string, languageCode: string) {
+  getReviewDataUrl = (appId: string, languageCode: string): string => {
     return `https://play.google.com/store/apps/details?id=${appId}&hl=${languageCode}`;
-  }
+  };
 
+  /**
+   * アプリ名が見つからなかった場合は、ダミー名を返却する
+   *
+   * @param page アプリ情報取得先ページ
+   */
+  getAppName = async (page: Page): Promise<string> => {
+    const jsonValue = await page.$eval('script[type="application/ld+json"]', (el: Element) => el.textContent);
+
+    if (typeof jsonValue === 'string') {
+      const applicationJson = JSON.parse(jsonValue);
+      return Promise.resolve(applicationJson['name']);
+    }
+    else {
+      return Promise.resolve("!!!No Name!!!");
+    }
+  };
 
   /**
    * Androindのレビュー情報を解析して、整形したレビューデータを返却する。
-   * ※Androidは$をそのまま使って処理してみる
-   *
-   * @param $
+    *
+   * @param page
    * @param app
-   * @returns {Promise}
    */
-  analyzeData($: any, app: AppModel): Promise<ReviewModel[]> {
+  createReviews = async (page: Page, app: AppModel): Promise<ReviewModel[]> => {
+    const elementHandles = await page.$$('main h3+div > div');
+    const reviews: ReviewModel[] = await Promise.all(
+      elementHandles.map(async (elementHandle: ElementHandle) => {
+        // 分析用にcheerioへ変換
+        const html = await page.evaluate((el: Element) => el.outerHTML, elementHandle);
+        const $ = cheerio.load(html, {
+          normalizeWhitespace: true
+        });
+        await elementHandle.dispose();
 
-    return new Promise((resolve, reject) => {
+        // レビューデータの分析と登録
+        const review = this.analyzeReviewData($);
+        return await this.registerReviewData(app, review);
+      })
+    );
 
-      // レビュー本文の後ろにくる「全文を表示」を削除
-      $('div.review-link').remove();
-
-      // アプリ情報を設定
-      app.name = $('.id-app-title').text();
-
-      // レビュー情報を設定
-      let reviewProcess: Promise<ReviewModel>[] = [];
-      $('.single-review').each((i: number, element: any) => {
-        reviewProcess.push(this.getReview($, app, element));
-      });
-      Promise.all(reviewProcess).then((data) => {
-        let returnData = [];
-        for (let i = 0; i < data.length; i++) {
-          if (data[i] !== null) {
-            returnData.push(data[i]);
-          }
-        }
-        resolve(returnData);
-      });
-    });
-  }
-
+    return Promise.resolve(reviews);
+  };
 
   /**
    * Androidのレビュー情報の解析処理。
-   * 取得したレビュー情報が新規であればDBに保存し、通知用データとして返却する。
    *
-   * @param $
-   * @param app
-   * @param element
-   * @returns {Promise}
+   * ratingの取得ロジック
+   * 1. rating対象のdivタグからclass名を取得
+   * 2. 1つ目のクラス名を基準にする
+   * 3. 同一のクラス名の個数をratingとして返却する
+   *
+   * @param $ 解析元データ
    */
-  getReview($: any, app: AppModel, element: any): Promise<ReviewModel> {
+  analyzeReviewData = ($: cheerio.Root): ReviewModel => {
+    const tempReviewId = $('div').attr('jsdata')?.match(/(gp:.*?);/); // 最短一致
+    let reviewId: string = '';
+    if (tempReviewId) reviewId = tempReviewId[1];
 
-    return new Promise((resolve, reject) => {
-      const reviewInfo = $(element).find('.review-info');
-      const reviewId = $(element).find('.review-header').attr('data-reviewid');
-      const postedAt = $(reviewInfo).find('.review-date').text();
+    // タイトルが存在しないのでレビュー者の名前にする
+    const title = $('div:first-of-type > div:first-of-type > div:nth-of-type(2) > div:first-of-type > div:first-of-type > span').text();
+    const message = $('div:first-of-type > div:first-of-type > div:nth-of-type(2) > div:nth-of-type(2) > span:nth-of-type(1)').text();
+    const rating = '0';   // TODO: 未実装状態
+    const version = "-";  // アプリバージョンは取れないのでハイフンにする
+    const postedAt = $('div:first-of-type > div:first-of-type > div:nth-of-type(2) > div:first-of-type > div:first-of-type > div:first-of-type > span:nth-of-type(2)').first().text();
 
-      // TODO:日本語以外にも対応する
-      const tempRating = $(reviewInfo).find('.review-info-star-rating .tiny-star').attr('aria-label');
-      const trimRatingLength = '5つ星のうち'.length;
-      const rating = tempRating.substring(trimRatingLength, trimRatingLength + 1);
-
-      // アプリバージョンは取れないのでハイフンにする
-      const version = "-";
-
-      const reviewBody = $(element).find('.review-body.with-review-wrapper');
-      const title = $(reviewBody).find('.review-title').text();
-
-      // レビュー本文の前からタイトルを削除し、前後の空白を削除
-      const tempMessage = $(reviewBody).text().replace(title, "");
-      const message = tempMessage.trim();
-
-      const review = new ReviewModel(reviewId, title, "", message, version, rating, postedAt);
-
-      // DBに登録を試みて、登録できれば新規レビューなので通知用レビューデータとして返却する
-      this.reviewRepository.insertReviewData(app, review).then((result) => {
-        this.reviewRepository.pushData(result, review).then((data) => {
-          if (data) {
-            resolve(data);
-          }
-        });
-      });
-    });
-  }
+    // console.log(reviewId, title, message, rating, version, postedAt);
+    return new ReviewModel(reviewId, title, "", message, version, rating, postedAt); // TODO: タイトルリンクの取得処理が必要
+  };
 }

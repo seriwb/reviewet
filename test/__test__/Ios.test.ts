@@ -52,13 +52,13 @@ describe('Puppeteer test', () => {
 
     const xpath = '//script[@name="schema:software-application"]/text()';
     const elems = await page.$x(xpath);
-    console.log(elems.length);
+
     const jsHandle = await elems[0].getProperty('textContent');
     const jsonValue = await jsHandle.jsonValue();
 
     if (typeof jsonValue === 'string') {
       const applicationJson = JSON.parse(jsonValue);
-      console.log(applicationJson);
+      // console.log(applicationJson);
       expect(applicationJson['name']).toBe('iTunes U');
     }
   });

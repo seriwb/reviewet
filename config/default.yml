@@ -5,9 +5,11 @@ app:
     countryCode:
       - jp
       - us
-  # android:
-  #   id: com.google.android.googlequicksearchbox
-  #   languageCode: ja
+  android:
+    id: com.google.android.googlequicksearchbox
+    languageCode:
+      - ja
+      - en
 
 cron:
   time: '0 * * * *'
