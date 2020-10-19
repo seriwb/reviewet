@@ -141,7 +141,12 @@ class Android extends AppOS {
     // タイトルが存在しないのでレビュー者の名前にする
     const title = $('div:first-of-type > div:first-of-type > div:nth-of-type(2) > div:first-of-type > div:first-of-type > span').text();
     const message = $('div:first-of-type > div:first-of-type > div:nth-of-type(2) > div:nth-of-type(2) > span:nth-of-type(1)').text();
-    const rating = '0';   // TODO: 未実装状態
+
+    // ratingの取得
+    const ratingData = $('div:first-of-type > div:first-of-type > div:nth-of-type(2) > div:first-of-type > div:first-of-type div[role="img"] > div');
+    const starClassName = `div[class="${ratingData.eq(0).attr('class')}"]`;
+    const rating = ratingData.parent().find(starClassName).length.toString();
+
     const version = "-";  // アプリバージョンは取れないのでハイフンにする
     const postedAt = $('div:first-of-type > div:first-of-type > div:nth-of-type(2) > div:first-of-type > div:first-of-type > div:first-of-type > span:nth-of-type(2)').first().text();
 
