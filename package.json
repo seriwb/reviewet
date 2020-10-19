@@ -37,8 +37,7 @@
     "webpack-node-externals": "^2.5.2"
   },
   "scripts": {
-    "build:dev": "webpack --config webpack.dev.js",
-    "start:dev": "wnode dist/app.js",
+    "dev": "webpack --config webpack.dev.js && node dist/app.js",
     "build": "webpack --config webpack.prd.js",
     "start": "node dist/app.js",
     "clean": "rm -rf dist",

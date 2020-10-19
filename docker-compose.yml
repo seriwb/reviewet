@@ -24,8 +24,8 @@ services:
       MYSQL_USER: "admin"
       MYSQL_PASSWORD: "admin"
     volumes:
-      - ./infra/mysql/sql:/docker-entrypoint-initdb.d
-      - ./infra/mysql/conf.d:/etc/mysql/conf.d
+      - ./infra/mysql/sql:/docker-entrypoint-initdb.d:cached
+      - ./infra/mysql/conf.d:/etc/mysql/conf.d:cached
       - mysql-db-volume:/var/lib/mysql
       - mysql-log-volume:/var/log/mysql
     command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci

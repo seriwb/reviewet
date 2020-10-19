@@ -29,7 +29,7 @@ describe('Puppeteer test', () => {
     }
   });
 
-
+/*
   test('Get Google Review Data', async () => {
     const appUrl = `https://play.google.com/store/apps/details?id=com.google.android.googlequicksearchbox&hl=ja&showAllReviews=true`;
     const page = await browser.newPage();
@@ -135,7 +135,7 @@ describe('Android test', () => {
           <div>
             <span class="nt2C1d">
               <div class="pf5lIe">
-                <div aria - label="Rated 1 stars out of five stars" role = "img">
+                <div aria-label="Rated 1 stars out of five stars" role="img">
                   <div class="vQHuPe bUWb7c"></div>
                   <div class="L0jl5e bUWb7c"></div>
                   <div class="L0jl5e bUWb7c"></div>
@@ -195,8 +195,15 @@ describe('Android test', () => {
     const title = $('div > div:nth-of-type(2) > div:first-of-type > div:first-of-type > span').text();
     // レビュー全文は、文字列オーバーしていない限りこのセレクタの場所にはない
     const message = $('div > div:nth-of-type(2) > div:nth-of-type(2) > span:nth-of-type(2)').text();
-    // const rating = $('im\\:rating').text();
-    // const version = $('im\\:version').text();
+    const ratings = $('div > div:nth-of-type(2) > div:first-of-type > div:first-of-type div[role="img"] > div');
+    expect(ratings.eq(0).attr('class')).toBe("vQHuPe bUWb7c");
+    expect(ratings.eq(4).attr('class')).toBe("L0jl5e bUWb7c");
+    expect(ratings.parent().find('div').length).toBe(5);
+    const starClassName = `div[class="${ratings.eq(0).attr('class')}"]`;
+    expect(ratings.parent().find(starClassName).length).toBe(1);
+    const nonStarClassName = `div[class="${ratings.eq(1).attr('class')}"]`;
+    expect(ratings.parent().find(nonStarClassName).length).toBe(4);
+
     const postedAtStr = $('div > div:nth-of-type(2) > div:first-of-type > div:first-of-type > div:first-of-type > span:nth-of-type(2)').text();
 
     expect(reviewId).toBe('gp:AOqpTOESH7qt542uDQEY1qPjEF-eVcAebWpwl9nMK0xqSvKAexc7nR_dXkLdH_IIWfHEuFnNHbOdfHKvimTWlQ');
@@ -206,8 +213,8 @@ describe('Android test', () => {
     // expect(version).toBe('288.0');
     expect(postedAtStr).toBe('October 3, 2020');
   });
-});
 
-afterAll(async () => {
-  await browser.close();
+  afterAll(async () => {
+    await browser.close();
+  });
 });

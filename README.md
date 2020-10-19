@@ -5,8 +5,6 @@ ReviewetはiOSとAndroidのストアレビューを、SlackやEmailで通知す�
 Androidのストアレビューにはレビュー時のバージョン情報がないため、
 通知されるAndroidレビューのバージョン情報は「-」になります。
 
-**※現在Androidのratingは取得できていません**
-
 
 # How to use
 
@@ -27,7 +25,7 @@ $ sudo docker-compose up -d
 $ sudo docker-compose exec app yarn start
 ```
 
-DBをコンテナ以外にする場合は、`infra/mysql/sql/init.sql`のDDLを対象のDBで実行してください。
+DBのMySQLを別途用意する場合は、`infra/mysql/sql/init.sql`のDDLを対象のDBで実行してください。
 
 ### Maintenance
 
@@ -134,8 +132,6 @@ app:
 
 レビュー情報取得を利用しない場合は、対象のOSのappの値を空にしてください。
 （例えばGoogle Playからの情報を取得しない場合は```andorid: ```としてください）
-
-**※現在、app.android.languageCodeに日本（ja）以外を指定した場合、AndroidアプリレビューのRatingが取得できません。**
 
 #### 2. cron
 
